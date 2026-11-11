@@ -29,17 +29,23 @@ const CLIENT_ID_KEY = "tandem.clientId";
 const PING_INTERVAL_MS = 2000;
 const MAX_RETRY_DELAY_MS = 5000;
 
+/** randomUUID needs a secure context; LAN dev over http doesn't have one. */
+function randomId(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 /** Stable per-device id so reconnecting reclaims the same seat. */
 function clientId(): string {
   try {
     let id = localStorage.getItem(CLIENT_ID_KEY);
     if (!id) {
-      id = crypto.randomUUID();
+      id = randomId();
       localStorage.setItem(CLIENT_ID_KEY, id);
     }
     return id;
   } catch {
-    return crypto.randomUUID();
+    return randomId();
   }
 }
 
