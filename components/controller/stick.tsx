@@ -64,7 +64,7 @@ export function Stick({ color, onChange }: { color: string; onChange: (x: number
       {!origin && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="flex h-36 w-36 items-center justify-center rounded-full border border-line-strong">
-            <span className="text-xs tracking-wide text-cream-faint">Move</span>
+            <span className="text-xs tracking-wide text-fg-tertiary">Move</span>
           </div>
         </div>
       )}
@@ -73,7 +73,7 @@ export function Stick({ color, onChange }: { color: string; onChange: (x: number
           className="pointer-events-none absolute"
           style={{ left: origin.x, top: origin.y, transform: "translate(-50%, -50%)" }}
         >
-          <div className="h-36 w-36 rounded-full border border-line-strong bg-cream/[0.03]" />
+          <div className="h-36 w-36 rounded-full border border-line-strong bg-fg-primary/[0.03]" />
           <div
             className="absolute left-1/2 top-1/2 h-16 w-16 rounded-full"
             style={{

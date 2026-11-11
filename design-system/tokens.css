@@ -1,0 +1,74 @@
+/*
+ * ─── Tandem tokens ───────────────────────────────────────────────────────────
+ * GENERATED-BY-HAND MIRROR of the Figma file "Tandem — Design System"
+ * (https://www.figma.com/design/ADSyRYkzjDSAqSlKyV2zvw).
+ *
+ * Rule: every Figma variable's WEB code syntax is the CSS name here.
+ *   Figma  color/fg/primary   →  CSS  --color-fg-primary  →  Tailwind  text-fg-primary
+ *   Figma  ink/900 (primitive) →  CSS  --ink-900
+ * Change a value in Figma → change the same line here. Never rename one side only.
+ */
+
+/* Primitives — Figma collection "Primitives" (hidden from pickers). */
+:root {
+  --ink-950: #070609;
+  --ink-900: #0b0a0d;
+  --ink-850: #141217;
+  --ink-800: #1c1a20;
+
+  --cream-100: #f4ece2;
+  --cream-a62: rgb(244 236 226 / 0.62);
+  --cream-a38: rgb(244 236 226 / 0.38);
+  --cream-a16: rgb(244 236 226 / 0.16);
+  --cream-a08: rgb(244 236 226 / 0.08);
+  --cream-a04: rgb(244 236 226 / 0.04);
+
+  --coral-400: #ff8a7a;
+  --periwinkle-400: #8fb8ff;
+  --amber-300: #ffc58a;
+  --mint-300: #7ee0a1;
+
+  /* Figma collection "Dimension" → space/* (4px grid). Tailwind's p-4 etc. already match. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+}
+
+/* Semantic — Figma collection "Color" (mode: Dark) + radius/*. Emitted as Tailwind utilities. */
+@theme {
+  --color-surface-base: var(--ink-900);
+  --color-surface-raised: var(--ink-850);
+  --color-surface-sunken: var(--ink-950);
+  --color-surface-overlay: var(--ink-800);
+  --color-surface-hover: var(--cream-a04);
+
+  --color-fg-primary: var(--cream-100);
+  --color-fg-secondary: var(--cream-a62);
+  --color-fg-tertiary: var(--cream-a38);
+
+  --color-line-subtle: var(--cream-a08);
+  --color-line-strong: var(--cream-a16);
+
+  --color-action-primary: var(--cream-100);
+  --color-action-on-primary: var(--ink-900);
+
+  --color-player-one: var(--coral-400);
+  --color-player-two: var(--periwinkle-400);
+  --color-accent-glow: var(--amber-300);
+  --color-status-online: var(--mint-300);
+
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 28px;
+  --radius-full: 9999px;
+}

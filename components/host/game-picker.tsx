@@ -13,7 +13,7 @@ export function GamePicker({ selected, onSelect }: { selected: string | null; on
               disabled={!playable}
               onClick={() => onSelect(g.id)}
               className={`group flex w-full items-center gap-4 rounded-2xl border px-4 py-3 text-left transition-all duration-300 ${
-                active ? "border-cream/40 bg-cream/[0.06]" : "border-transparent hover:bg-cream/[0.03]"
+                active ? "border-fg-primary/40 bg-fg-primary/[0.06]" : "border-transparent hover:bg-fg-primary/[0.03]"
               } disabled:cursor-default`}
             >
               <span
@@ -24,11 +24,11 @@ export function GamePicker({ selected, onSelect }: { selected: string | null; on
                 }}
               />
               <span className="min-w-0 flex-1">
-                <span className={`block text-[15px] ${playable ? "" : "text-cream-faint"}`}>{g.title}</span>
-                <span className="block truncate text-xs text-cream-faint">{g.tagline}</span>
+                <span className={`block text-[15px] ${playable ? "" : "text-fg-tertiary"}`}>{g.title}</span>
+                <span className="block truncate text-xs text-fg-tertiary">{g.tagline}</span>
               </span>
               {!playable && (
-                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-cream-faint">Soon</span>
+                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-fg-tertiary">Soon</span>
               )}
             </button>
           </li>

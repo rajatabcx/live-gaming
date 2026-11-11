@@ -26,7 +26,7 @@ export function JoinForm() {
         autoCapitalize="characters"
         autoComplete="off"
         spellCheck={false}
-        className="h-20 rounded-2xl border border-line-strong bg-ink-raised text-center font-display text-5xl tracking-[0.3em] outline-none transition-colors placeholder:text-cream/15 focus:border-cream/40"
+        className="h-20 rounded-2xl border border-line-strong bg-surface-raised text-center font-display text-5xl tracking-[0.3em] outline-none transition-colors placeholder:text-fg-primary/15 focus:border-fg-primary/40"
       />
       <Button type="submit" disabled={!code} className="h-14">
         Join

@@ -29,9 +29,9 @@ export function ActionButton({
       <button
         className={`touch-surface ${dim} rounded-full border text-2xl font-medium transition-[transform,box-shadow,background] duration-100`}
         style={{
-          borderColor: down ? color : "var(--line-strong)",
+          borderColor: down ? color : "var(--color-line-strong)",
           background: down ? color : "rgba(244,236,226,0.03)",
-          color: down ? "var(--ink)" : "var(--cream)",
+          color: down ? "var(--color-surface-base)" : "var(--color-fg-primary)",
           transform: down ? "scale(0.94)" : "none",
           boxShadow: down ? `0 0 48px ${color}` : "none",
         }}
@@ -45,7 +45,7 @@ export function ActionButton({
       >
         {glyph}
       </button>
-      {label && <span className="text-xs tracking-wide text-cream-faint">{label}</span>}
+      {label && <span className="text-xs tracking-wide text-fg-tertiary">{label}</span>}
     </div>
   );
 }

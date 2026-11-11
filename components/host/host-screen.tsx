@@ -9,7 +9,7 @@ import type { HostStatus } from "@/lib/realtime/host-room";
 import { joinUrl } from "@/lib/join-url";
 import { createRoomCode } from "@/lib/room-code";
 import { Button } from "@/components/ui/button";
-import { Wordmark } from "@/components/ui/wordmark";
+import { Wordmark } from "@/design-system";
 import { GamePicker } from "./game-picker";
 import { JoinPanel } from "./join-panel";
 import { Seat } from "./seat";
@@ -58,7 +58,7 @@ export function HostScreen({ code }: { code: string }) {
     return (
       <Centered>
         <h1 className="font-display text-5xl">This room is open elsewhere</h1>
-        <p className="mt-4 max-w-sm text-cream-muted">
+        <p className="mt-4 max-w-sm text-fg-secondary">
           Room {code} is already running in another tab or on another screen.
         </p>
         <Button className="mt-8" onClick={() => router.replace(`/room/${createRoomCode()}`)}>
@@ -71,20 +71,20 @@ export function HostScreen({ code }: { code: string }) {
   return (
     <main className="relative flex min-h-dvh flex-1 flex-col overflow-hidden">
       <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-40 top-1/4 h-[520px] w-[520px] rounded-full bg-p1/10 blur-[140px]" />
-        <div className="absolute -right-40 bottom-0 h-[520px] w-[520px] rounded-full bg-p2/10 blur-[140px]" />
+        <div className="absolute -left-40 top-1/4 h-[520px] w-[520px] rounded-full bg-player-one/10 blur-[140px]" />
+        <div className="absolute -right-40 bottom-0 h-[520px] w-[520px] rounded-full bg-player-two/10 blur-[140px]" />
       </div>
       {room && <WarmupField room={room} players={players} />}
 
       <header className="relative z-10 flex items-center justify-between px-8 py-6">
         <Wordmark />
-        <div className="flex items-center gap-2.5 rounded-full border border-line bg-ink/50 px-4 py-2 text-sm backdrop-blur-xl">
+        <div className="flex items-center gap-2.5 rounded-full border border-line-subtle bg-surface-base/50 px-4 py-2 text-sm backdrop-blur-xl">
           <span
             className={`h-2 w-2 rounded-full ${
-              status === "open" ? "bg-[#7ee0a1]" : status === "error" ? "bg-p1" : "bg-glow animate-pulse-soft"
+              status === "open" ? "bg-status-online" : status === "error" ? "bg-player-one" : "bg-accent-glow animate-pulse-soft"
             }`}
           />
-          <span className="text-cream-muted">{STATUS_COPY[status]}</span>
+          <span className="text-fg-secondary">{STATUS_COPY[status]}</span>
         </div>
       </header>
 
@@ -92,7 +92,7 @@ export function HostScreen({ code }: { code: string }) {
         <div className="pointer-events-auto animate-fade-up">{url && <JoinPanel url={url} code={code} />}</div>
 
         <div className="hidden text-center lg:block">
-          <p className="font-display text-3xl italic text-cream-faint">
+          <p className="font-display text-3xl italic text-fg-tertiary">
             {bothHere ? "Move around. Find each other." : "Your room is ready."}
           </p>
         </div>
@@ -103,8 +103,8 @@ export function HostScreen({ code }: { code: string }) {
             <Seat slot={1} player={seats[1]} />
           </div>
 
-          <div className="rounded-[28px] border border-line bg-ink/60 p-3 backdrop-blur-2xl">
-            <p className="px-3 pb-2 pt-2 font-mono text-[11px] uppercase tracking-[0.16em] text-cream-faint">
+          <div className="rounded-[28px] border border-line-subtle bg-surface-base/60 p-3 backdrop-blur-2xl">
+            <p className="px-3 pb-2 pt-2 font-mono text-[11px] uppercase tracking-[0.16em] text-fg-tertiary">
               Choose a game
             </p>
             <GamePicker selected={gameId} onSelect={setGameId} />

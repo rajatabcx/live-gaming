@@ -1,39 +1,10 @@
 @import "tailwindcss";
+@import "../design-system/tokens.css";
+@import "../design-system/typography.css";
 
-/*
- * Tandem design tokens.
- * Dark-first, warm and quiet: ink background, cream type, a rose→amber glow
- * reserved for the two players and primary actions.
- */
-:root {
-  --ink: #0b0a0d;
-  --ink-raised: #141217;
-  --ink-sunken: #070609;
-  --line: rgba(244, 236, 226, 0.08);
-  --line-strong: rgba(244, 236, 226, 0.16);
-  --cream: #f4ece2;
-  --cream-muted: rgba(244, 236, 226, 0.62);
-  --cream-faint: rgba(244, 236, 226, 0.38);
-
-  /* Player identities — every game uses these two. */
-  --p1: #ff8a7a; /* coral */
-  --p2: #8fb8ff; /* periwinkle */
-  --glow: #ffc58a; /* amber, shared moments */
-}
+/* Fonts from next/font + motion. Colors/radii live in design-system/tokens.css. */
 
 @theme inline {
-  --color-ink: var(--ink);
-  --color-ink-raised: var(--ink-raised);
-  --color-ink-sunken: var(--ink-sunken);
-  --color-line: var(--line);
-  --color-line-strong: var(--line-strong);
-  --color-cream: var(--cream);
-  --color-cream-muted: var(--cream-muted);
-  --color-cream-faint: var(--cream-faint);
-  --color-p1: var(--p1);
-  --color-p2: var(--p2);
-  --color-glow: var(--glow);
-
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-display: var(--font-instrument-serif);
@@ -76,18 +47,18 @@
 
 html {
   color-scheme: dark;
-  background: var(--ink);
+  background: var(--color-surface-base);
 }
 
 body {
-  background: var(--ink);
-  color: var(--cream);
+  background: var(--color-surface-base);
+  color: var(--color-fg-primary);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
 ::selection {
-  background: color-mix(in oklab, var(--p1) 40%, transparent);
+  background: color-mix(in oklab, var(--color-player-one) 40%, transparent);
 }
 
 /* Subtle film grain over everything — keeps big dark surfaces from feeling flat. */

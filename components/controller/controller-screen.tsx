@@ -53,7 +53,7 @@ export function ControllerScreen({ code }: { code: string }) {
     return (
       <main className="flex min-h-dvh flex-1 flex-col justify-between px-6 pb-[max(2rem,env(safe-area-inset-bottom))] pt-16">
         <div className="animate-fade-up">
-          <p className="font-mono text-xs uppercase tracking-[0.2em] text-cream-faint">Room {code}</p>
+          <p className="font-mono text-xs uppercase tracking-[0.2em] text-fg-tertiary">Room {code}</p>
           <h1 className="mt-4 font-display text-5xl leading-[1.02]">What should we call you?</h1>
         </div>
         <form
@@ -75,7 +75,7 @@ export function ControllerScreen({ code }: { code: string }) {
             onChange={(e) => setDraft(e.target.value)}
             maxLength={16}
             placeholder="Your name"
-            className="h-14 rounded-2xl border border-line-strong bg-ink-raised px-5 text-lg outline-none transition-colors placeholder:text-cream-faint focus:border-cream/40"
+            className="h-14 rounded-2xl border border-line-strong bg-surface-raised px-5 text-lg outline-none transition-colors placeholder:text-fg-tertiary focus:border-fg-primary/40"
           />
           <Button type="submit" className="h-14">
             Join room
@@ -94,7 +94,7 @@ function Connected({ code, name }: { code: string; name: string }) {
   const notice = status !== "connected" ? STATUS_COPY[status] : undefined;
 
   return (
-    <main className="touch-surface fixed inset-0 flex flex-col bg-ink">
+    <main className="touch-surface fixed inset-0 flex flex-col bg-surface-base">
       <div
         aria-hidden
         className="pointer-events-none absolute -top-32 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full blur-[100px] transition-colors duration-700"
@@ -105,20 +105,20 @@ function Connected({ code, name }: { code: string; name: string }) {
           <span className="h-2.5 w-2.5 rounded-full" style={{ background: color, boxShadow: `0 0 16px ${color}` }} />
           <span className="text-sm">{name}</span>
         </div>
-        <span className="font-mono text-[11px] text-cream-faint">
+        <span className="font-mono text-[11px] text-fg-tertiary">
           {status === "connected" && rtt !== null ? `${Math.round(rtt)} ms` : code}
         </span>
       </header>
 
       {layout.caption && status === "connected" && (
-        <p className="relative z-10 px-5 pt-3 text-center text-sm text-cream-muted">{layout.caption}</p>
+        <p className="relative z-10 px-5 pt-3 text-center text-sm text-fg-secondary">{layout.caption}</p>
       )}
 
       <div className="relative z-10 flex-1 pb-[env(safe-area-inset-bottom)]">
         {notice ? (
           <div className="flex h-full flex-col items-center justify-center px-8 text-center">
             <h2 className="font-display text-4xl">{notice.title}</h2>
-            <p className="mt-3 text-cream-muted">{notice.body}</p>
+            <p className="mt-3 text-fg-secondary">{notice.body}</p>
             {(status === "room-not-found" || status === "outdated") && (
               <Button
                 variant="ghost"
@@ -135,7 +135,7 @@ function Connected({ code, name }: { code: string; name: string }) {
       </div>
 
       {layout.layout.kind === "lobby" && status === "connected" && (
-        <p className="relative z-10 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-center text-xs text-cream-faint">
+        <p className="relative z-10 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-center text-xs text-fg-tertiary">
           You&apos;re in. Look at the big screen.
         </p>
       )}
