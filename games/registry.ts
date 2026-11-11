@@ -47,6 +47,18 @@ export const GAMES: GameDefinition[] = [
     twoScreens: true,
     load: () => import("./lighthouse/game"),
   },
+  {
+    id: "keyhole",
+    title: "Keyhole",
+    tagline: "Two rooms, one locked door. Every clue is on the other side.",
+    description:
+      "Made for two screens. You each wake up in a different room of the same old house. Describe what you see, pass things through the keyhole, and open the door between you — three chapters, no solving it alone.",
+    mood: "co-op",
+    minutes: "20–30 min",
+    palette: ["#ffc58a", "#33222a"],
+    twoScreens: true,
+    load: () => import("./keyhole/game"),
+  },
 ];
 
 export const getGame = (id: string | null | undefined) => GAMES.find((g) => g.id === id) ?? null;

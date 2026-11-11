@@ -51,7 +51,8 @@ export type WorldEvent =
   | { type: "close"; slot: Slot }
   | { type: "cursor"; slot: Slot }
   | { type: "turn"; slot: Slot; value: number }
-  | { type: "key"; slot: Slot; index: number }
+  /** `note`: pitch in the shared scale, so the session can sound it. */
+  | { type: "key"; slot: Slot; index: number; note: number; style: "lamps" | "piano" }
   | { type: "wrong"; slot: Slot }
   | { type: "solved"; slot: Slot; id: string }
   | { type: "item"; slot: Slot; item: ItemId }
@@ -240,7 +241,7 @@ export class World {
       if (st.values[0] === d.solution.h && st.values[1] * 15 === d.solution.m) this.solve(slot, h);
     } else if (d.kind === "sequence" && use) {
       st.entered.push(p.cursor);
-      this.emit({ type: "key", slot, index: p.cursor });
+      this.emit({ type: "key", slot, index: p.cursor, note: d.style === "piano" ? (d.keys[p.cursor] as number) : p.cursor, style: d.style });
       const n = st.entered.length;
       if (st.entered[n - 1] !== d.solution[n - 1]) {
         st.entered = [];

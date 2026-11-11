@@ -70,7 +70,10 @@ function bot(slot: Slot) {
     if (container) target = container;
     else if (p.items.length) target = door;
     else if (lock) target = lock;
-    else if (w.unlocked) (target = door), (hold = true);
+    else if (w.unlocked) {
+      target = door;
+      hold = true;
+    }
     if (!target) return IDLE_INPUT;
 
     if (w.nearest(slot)?.id !== target.id) {
