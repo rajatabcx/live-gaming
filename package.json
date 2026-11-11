@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "playtest": "node --no-warnings --import ./scripts/ts-resolve.mjs games/tongue-tied/playtest/run.ts && node --no-warnings --import ./scripts/ts-resolve.mjs games/wobble-run/playtest/run.ts"
+    "playtest": "node --no-warnings --import ./scripts/ts-resolve.mjs games/tongue-tied/playtest/run.ts && node --no-warnings --import ./scripts/ts-resolve.mjs games/wobble-run/playtest/run.ts && node --no-warnings --import ./scripts/ts-resolve.mjs games/lanterns/playtest/run.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",

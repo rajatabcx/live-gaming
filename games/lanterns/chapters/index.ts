@@ -1,0 +1,115 @@
+import type { ChapterData } from "../sim/chapter";
+
+// Three original constellations, each one sky higher than the last. The
+// final chapter ends at dawn. Coordinates are within the 1600×900 window;
+// stars stay ≥ 140 from the edges so the soft walls never fight you.
+
+export const CHAPTERS: ChapterData[] = [
+  {
+    id: "paper-boat",
+    name: "The Paper Boat",
+    subtitle: "Light it together",
+    hint: "Float to a star — together",
+    spawns: [
+      { x: 700, y: 780 },
+      { x: 900, y: 780 },
+    ],
+    stars: [
+      { x: 500, y: 560 },
+      { x: 680, y: 660 },
+      { x: 920, y: 660 },
+      { x: 1100, y: 560 },
+      { x: 800, y: 250 },
+      { x: 1010, y: 490 },
+      { x: 800, y: 545 },
+    ],
+    lines: [
+      [0, 1],
+      [1, 2],
+      [2, 3],
+      [3, 6],
+      [6, 0],
+      [4, 5],
+      [5, 6],
+      [6, 4],
+    ],
+    winds: [],
+  },
+  {
+    id: "heron",
+    name: "The Heron",
+    subtitle: "Mind the currents",
+    hint: "Some stars hide — glow to find them",
+    spawns: [
+      { x: 700, y: 780 },
+      { x: 900, y: 780 },
+    ],
+    stars: [
+      { x: 1250, y: 255, hidden: true },
+      { x: 1080, y: 230 },
+      { x: 990, y: 350 },
+      { x: 1040, y: 470 },
+      { x: 770, y: 420 },
+      { x: 560, y: 500 },
+      { x: 880, y: 545 },
+      { x: 860, y: 660 },
+      { x: 820, y: 770 },
+    ],
+    lines: [
+      [0, 1],
+      [1, 2],
+      [2, 3],
+      [3, 4],
+      [4, 5],
+      [5, 6],
+      [6, 3],
+      [6, 7],
+      [7, 8],
+    ],
+    winds: [
+      { x: 900, y: 120, w: 600, h: 200, fx: 260, fy: 0 },
+      { x: 300, y: 300, w: 300, h: 480, fx: 0, fy: -240 },
+    ],
+  },
+  {
+    id: "whale",
+    name: "The Whale",
+    subtitle: "Until morning",
+    spawns: [
+      { x: 700, y: 780 },
+      { x: 900, y: 780 },
+    ],
+    stars: [
+      { x: 230, y: 300 },
+      { x: 210, y: 520 },
+      { x: 390, y: 420 },
+      { x: 640, y: 300 },
+      { x: 910, y: 250 },
+      { x: 1190, y: 320 },
+      { x: 1400, y: 470 },
+      { x: 1190, y: 610 },
+      { x: 850, y: 640 },
+      { x: 800, y: 770 },
+      { x: 1215, y: 450, hidden: true },
+      { x: 1170, y: 170, hidden: true },
+    ],
+    lines: [
+      [0, 2],
+      [1, 2],
+      [2, 3],
+      [3, 4],
+      [4, 5],
+      [5, 6],
+      [6, 7],
+      [7, 8],
+      [8, 2],
+      [8, 9],
+      [5, 11],
+    ],
+    winds: [
+      { x: 480, y: 380, w: 640, h: 180, fx: -300, fy: 0 },
+      { x: 140, y: 140, w: 280, h: 200, fx: 0, fy: 220 },
+      { x: 1240, y: 520, w: 300, h: 300, fx: -120, fy: -200 },
+    ],
+  },
+];
