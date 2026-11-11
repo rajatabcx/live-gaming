@@ -1,9 +1,6 @@
 import type { GameDefinition } from "./types";
 
-/**
- * The catalogue. Order is display order. A game without `load` shows as
- * "coming soon" — add `load: () => import("./<id>/game")` once it ships.
- */
+/** The catalogue: shipped games only. Order is display order. */
 export const GAMES: GameDefinition[] = [
   {
     id: "tongue-tied",
@@ -39,34 +36,16 @@ export const GAMES: GameDefinition[] = [
     load: () => import("./lanterns/game"),
   },
   {
-    id: "night-kitchen",
-    title: "Night Kitchen",
-    tagline: "A tiny late-night diner. A rush of orders.",
+    id: "lighthouse",
+    title: "Lighthouse",
+    tagline: "One keeps the light. One sails home through the fog.",
     description:
-      "One of you preps, one of you cooks and plates. Split the jobs, shout across the counter, keep the regulars happy.",
+      "Made for two screens. The keeper sees the whole sea but not the boat; the sailor sees only what the beam touches. Talk each other home across three foggy nights — then swap.",
     mood: "co-op",
-    minutes: "15–30 min",
-    palette: ["#ff8a7a", "#a33b4f"],
-  },
-  {
-    id: "in-sync",
-    title: "In Sync",
-    tagline: "How well do you really know each other?",
-    description:
-      "Answer questions about each other in secret on your phones. The screen reveals where you matched — and where you very much didn't.",
-    mood: "talk",
-    minutes: "10–15 min",
-    palette: ["#f4b8d4", "#5b5bd6"],
-  },
-  {
-    id: "bump",
-    title: "Bump",
-    tagline: "A shrinking island. Push them off first.",
-    description:
-      "Fast, silly, best-of-five. Dash into each other on a floating island that gets smaller every round.",
-    mood: "versus",
-    minutes: "5 min",
-    palette: ["#8fb8ff", "#2b3f8f"],
+    minutes: "15–20 min",
+    palette: ["#ffd9a0", "#1d3a5c"],
+    twoScreens: true,
+    load: () => import("./lighthouse/game"),
   },
 ];
 

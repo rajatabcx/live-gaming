@@ -38,7 +38,7 @@ export function RemoteScreen({ code, name }: { code: string; name: string }) {
   useEffect(() => {
     let live = true;
     const game = getGame(gameId);
-    if (!game?.load) {
+    if (!game) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- back to the lobby
       setGame(null);
       return;

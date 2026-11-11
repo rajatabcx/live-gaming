@@ -91,8 +91,8 @@ export interface GameDefinition {
   minutes: string;
   /** Two CSS colors used for the card art gradient. */
   palette: [string, string];
+  /** Built for two screens (each player sees something the other can't); split-screen on one. */
+  twoScreens?: boolean;
   /** Lazily loaded so the landing page never ships game code. */
-  load?: () => Promise<{ default: ComponentType<GameProps> }>;
+  load: () => Promise<{ default: ComponentType<GameProps> }>;
 }
-
-export const isPlayable = (g: GameDefinition) => g.load !== undefined;

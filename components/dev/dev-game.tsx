@@ -19,7 +19,7 @@ export function DevGame({ id }: { id: string }) {
     (window as unknown as { __room?: KeyboardRoom }).__room = room;
     let live = true;
     void getGame(id)
-      ?.load?.()
+      ?.load()
       .then((mod) => live && setGame(() => mod.default));
     return () => {
       live = false;

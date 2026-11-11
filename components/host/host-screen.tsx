@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { useRouter } from "next/navigation";
 import { getGame } from "@/games/registry";
-import { isPlayable, type GameProps } from "@/games/types";
+import type { GameProps } from "@/games/types";
 import { useHostRoom, useLocalSeat } from "@/lib/realtime/hooks";
 import type { HostStatus } from "@/lib/realtime/host-room";
 import { joinUrl } from "@/lib/join-url";
@@ -42,7 +42,7 @@ export function HostScreen({ code }: { code: string }) {
   const seats = useMemo(() => [players.find((p) => p.slot === 0), players.find((p) => p.slot === 1)], [players]);
 
   const start = async () => {
-    if (!game?.load || !room) return;
+    if (!game || !room) return;
     room.setGame(game.id);
     const mod = await game.load();
     setGame(() => mod.default);
@@ -131,7 +131,7 @@ export function HostScreen({ code }: { code: string }) {
             <GamePicker selected={gameId} onSelect={setGameId} />
           </Panel>
 
-          <Button size="lg" disabled={!game || !isPlayable(game) || !bothHere} onClick={start}>
+          <Button size="lg" disabled={!game || !bothHere} onClick={start}>
             {!bothHere ? "Waiting for both players" : !game ? "Pick a game" : `Play ${game.title}`}
           </Button>
         </aside>

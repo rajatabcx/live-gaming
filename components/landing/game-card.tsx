@@ -1,5 +1,4 @@
 import type { GameDefinition } from "@/games/types";
-import { isPlayable } from "@/games/types";
 import { Badge, Text } from "@/design-system";
 
 const MOOD_LABEL: Record<GameDefinition["mood"], string> = {
@@ -12,7 +11,6 @@ const MOOD_LABEL: Record<GameDefinition["mood"], string> = {
 /** Abstract generative cover: two orbs in the game's palette. No images to load. */
 export function GameCard({ game, index }: { game: GameDefinition; index: number }) {
   const [a, b] = game.palette;
-  const playable = isPlayable(game);
   return (
     <article
       className="group relative flex flex-col overflow-hidden rounded-lg border border-line-subtle bg-surface-raised transition-colors duration-500 hover:border-line-strong animate-fade-up"
@@ -28,10 +26,10 @@ export function GameCard({ game, index }: { game: GameDefinition; index: number 
         />
         <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_55%,var(--color-surface-raised))]" />
         <Badge className="absolute left-5 top-5">{MOOD_LABEL[game.mood]}</Badge>
-        {!playable && (
-          <Text as="span" variant="overline" className="absolute right-5 top-6">
-            Soon
-          </Text>
+        {game.twoScreens && (
+          <Badge tone="glow" className="absolute right-5 top-5">
+            Two screens
+          </Badge>
         )}
       </div>
       <div className="flex flex-1 flex-col gap-2 p-6 pt-2">

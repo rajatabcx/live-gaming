@@ -31,7 +31,7 @@ export default function Home() {
 
       <section className="relative z-10 mx-auto flex w-full max-w-6xl flex-col items-start px-6 pb-24 pt-20 sm:pt-32">
         <Text variant="overline" className="animate-fade-up">
-          Couch games · for two
+          Games for two · near or far
         </Text>
         <h1
           className="type-display-xl animate-fade-up mt-6 max-w-4xl"
@@ -41,8 +41,8 @@ export default function Home() {
           <em className="bg-gradient-to-r from-player-one via-accent-glow to-player-two bg-clip-text text-transparent">better as two.</em>
         </h1>
         <Text variant="body-l" className="animate-fade-up mt-8 max-w-md" style={{ animationDelay: "160ms" }}>
-          Quiet, beautiful little games for you and your person. One screen, two phones as controllers, nothing to
-          install.
+          Quiet, beautiful little games for you and your person. On the couch with your phones as controllers, or
+          from two cities on two laptops. Nothing to install.
         </Text>
         <div className="animate-fade-up mt-10 flex flex-wrap gap-3" style={{ animationDelay: "240ms" }}>
           <StartRoomButton />
@@ -68,7 +68,7 @@ export default function Home() {
         <div className="mb-10 flex items-end justify-between gap-6">
           <Text variant="display-m">The collection</Text>
           <Text variant="body-s" tone="tertiary" className="hidden max-w-xs text-right sm:block">
-            A new one every few weeks. Each built to be played side by side.
+            Side by side, or miles apart. Every one is finished and ready tonight.
           </Text>
         </div>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
