@@ -1,7 +1,7 @@
 import { rgba } from "./color";
 import { drawGlow } from "./sprites";
 
-type Kind = "dust" | "spark" | "drop" | "ring" | "heart" | "mote";
+type Kind = "dust" | "spark" | "drop" | "ring" | "heart" | "mote" | "confetti";
 
 interface Particle {
   kind: Kind;
@@ -104,6 +104,18 @@ export class Particles {
         case "heart":
           heart(ctx, p.x, p.y, p.size * (0.7 + (1 - t) * 0.5), rgba(p.color, Math.min(1, t * 2) * 0.9));
           break;
+        case "confetti": {
+          // A paper chip tumbling: spin from its own drift, flip by narrowing one axis.
+          const a = p.x * 0.05 + p.life * 9;
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(a);
+          ctx.scale(1, Math.cos(p.life * 13 + p.size));
+          ctx.fillStyle = rgba(p.color, Math.min(1, t * 3));
+          ctx.fillRect(-p.size, -p.size * 0.5, p.size * 2, p.size);
+          ctx.restore();
+          break;
+        }
       }
     }
   }

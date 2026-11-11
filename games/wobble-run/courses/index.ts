@@ -138,6 +138,13 @@ function course(id: string, name: string, subtitle: string, sections: Section[])
   }
   // The start line sits a little in from the left edge.
   out.checkpoints[0] = cp(160);
+  // Sections meet flush; fuse level neighbours so there's no seam in the cake.
+  out.solids = out.solids.reduce<Rect[]>((acc, s) => {
+    const prev = acc[acc.length - 1];
+    if (prev && prev.x + prev.w === s.x && prev.y === s.y && prev.h === s.h) prev.w += s.w;
+    else acc.push({ ...s });
+    return acc;
+  }, []);
   return { id, name, subtitle, length: x, finish: x - RUN_OUT + 250, ...out };
 }
 

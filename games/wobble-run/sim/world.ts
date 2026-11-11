@@ -114,6 +114,8 @@ export class World {
   /** Seconds since the heat was created; the race starts at COUNTDOWN. */
   time = 0;
   camX = 0;
+  /** Camera at the previous step, for render interpolation. */
+  prevCamX = 0;
   winner: Slot | null = null;
   over = false;
   private events: WorldEvent[] = [];
@@ -158,6 +160,7 @@ export class World {
     for (const r of this.runners) if (r.respawn <= 0) this.hazards(r);
     this.bump();
     this.progress();
+    this.prevCamX = this.camX;
     this.updateCamera();
     return this.events;
   }
@@ -561,9 +564,14 @@ export function sliderRect(s: SliderData, time: number): Rect {
   return { x: s.x + s.dx * k, y: s.y + s.dy * k, w: s.w, h: s.h };
 }
 
+/** 0..1 through a thumper's cycle: wait until 0.45, slam until 0.52, hold until 0.75, rise. */
+export function thumperCycle(t: ThumperData, time: number): number {
+  return (((time / t.period + t.phase) % 1) + 1) % 1;
+}
+
 /** Up (wait) → slam → hold → rise, as a fraction of the drop. */
 export function thumperDrop(t: ThumperData, time: number): number {
-  const p = (((time / t.period + t.phase) % 1) + 1) % 1;
+  const p = thumperCycle(t, time);
   if (p < 0.45) return 0;
   if (p < 0.52) return ((p - 0.45) / 0.07) ** 2;
   if (p < 0.75) return 1;
