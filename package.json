@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "playtest": "node --no-warnings --import ./scripts/ts-resolve.mjs games/tongue-tied/playtest/run.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",
