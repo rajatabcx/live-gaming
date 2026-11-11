@@ -22,5 +22,6 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 - **Host screen** (laptop/TV): `/room/[code]` — runs the game loop, renders the game, shows QR + join link.
 - **Controller** (phone): `/play/[code]` — sends input only; never runs game logic.
-- **Realtime**: WebRTC data channels, host ↔ each phone (peer-to-peer). Signaling via PeerJS broker. No game server needed, so Vercel serves only static pages. Transport lives behind `lib/realtime/` interfaces so it can be swapped (e.g. for a managed provider) without touching games.
+- **Realtime**: Supabase Realtime channel per room (`lib/realtime/signaling.ts`) for presence + WebRTC handshake. Phones then talk to the host over a direct WebRTC data channel; if that fails (strict NAT), messages relay through Supabase broadcast (`lib/realtime/link.ts`). No game server; Vercel serves static pages. Games only see `HostRoom`, never the transport. Add `?relay` to a controller URL to test the fallback.
+- **Env**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (public) in `.env.local` and on Vercel. `DATABASE_URL` is server-only — never import it into client code.
 - **Games** live in `games/<id>/` and register in `games/registry.ts`. A game gets a typed input stream + player list from the room; it owns its own loop and canvas.
