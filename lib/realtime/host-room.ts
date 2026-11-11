@@ -30,6 +30,9 @@ interface Seat {
 }
 
 const MAX_PLAYERS = 2;
+/** After a reload the broker may still hold our old id for a moment. */
+const TAKEN_RETRIES = 2;
+const TAKEN_RETRY_MS = 1500;
 const SLOTS: PlayerSlot[] = [0, 1];
 
 /**
@@ -46,6 +49,7 @@ export class HostRoom extends Emitter<HostEvents> {
   private layout: { layout: ControllerLayout; caption?: string } = { layout: { kind: "lobby" } };
   private gameId: string | null = null;
   private destroyed = false;
+  private takenRetries = 0;
   status: HostStatus = "starting";
 
   constructor(readonly code: string) {
@@ -55,6 +59,7 @@ export class HostRoom extends Emitter<HostEvents> {
   async start(): Promise<void> {
     const PeerCtor = await loadPeer();
     if (this.destroyed) return;
+    this.peer?.destroy();
 
     const peer = new PeerCtor(hostPeerId(this.code), peerOptions());
     this.peer = peer;
@@ -68,7 +73,10 @@ export class HostRoom extends Emitter<HostEvents> {
       setTimeout(() => !this.destroyed && peer.reconnect(), 1500);
     });
     peer.on("error", (err) => {
-      if (err.type === "unavailable-id") this.setStatus("code-taken");
+      if (err.type === "unavailable-id") {
+        if (this.takenRetries++ < TAKEN_RETRIES) setTimeout(() => !this.destroyed && this.start(), TAKEN_RETRY_MS);
+        else this.setStatus("code-taken");
+      }
       else if (err.type === "network" || err.type === "server-error" || err.type === "socket-closed") {
         this.setStatus("reconnecting");
       } else if (err.type !== "peer-unavailable") {

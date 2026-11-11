@@ -14,7 +14,7 @@ export default function JoinPage() {
             Enter the room code
           </Text>
           <Text variant="body-l" className="mt-3">
-            It&apos;s the four letters on the big screen.
+            It&apos;s the five characters on the big screen.
           </Text>
         </div>
         <div className="animate-fade-up" style={{ animationDelay: "100ms" }}>

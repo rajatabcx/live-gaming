@@ -51,6 +51,11 @@ export function HostScreen({ code }: { code: string }) {
     setGame(null);
   };
 
+  // Code genuinely in use by another screen: quietly roll a fresh one.
+  useEffect(() => {
+    if (status === "code-taken") router.replace(`/room/${createRoomCode()}`);
+  }, [status, router]);
+
   if (Game && room) return <Game room={room} players={players} onExit={exit} />;
 
   if (status === "code-taken") {

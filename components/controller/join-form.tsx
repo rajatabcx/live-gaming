@@ -22,12 +22,12 @@ export function JoinForm() {
         aria-label="Room code"
         autoFocus
         value={value}
-        onChange={(e) => setValue(e.target.value.toUpperCase().slice(0, ROOM_CODE_LENGTH))}
-        placeholder="ABCD"
+        onChange={(e) => setValue(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, ROOM_CODE_LENGTH))}
+        placeholder="K7M4Q"
         autoCapitalize="characters"
         autoComplete="off"
         spellCheck={false}
-        className="h-20 text-center font-display text-5xl tracking-[0.3em] placeholder:text-fg-primary/15"
+        className="h-20 text-center font-display text-5xl tracking-[0.2em] placeholder:text-fg-primary/15"
       />
       <Button type="submit" size="lg" disabled={!code}>
         Join
