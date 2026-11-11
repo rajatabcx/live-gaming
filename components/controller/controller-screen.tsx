@@ -3,11 +3,10 @@
 import { useEffect, useState } from "react";
 import { useController } from "@/lib/realtime/hooks";
 import type { ControllerStatus } from "@/lib/realtime/controller-client";
-import { Button } from "@/components/ui/button";
+import { Button, Field, Input, PLAYER_COLORS, Text, palette } from "@/design-system";
 import { Gamepad } from "./gamepad";
 
 const NAME_KEY = "tandem.name";
-const PLAYER_COLOR = ["#ff8a7a", "#8fb8ff"] as const;
 
 const STATUS_COPY: Partial<Record<ControllerStatus, { title: string; body: string }>> = {
   connecting: { title: "Finding the room…", body: "Keep this phone near the screen." },
@@ -53,8 +52,10 @@ export function ControllerScreen({ code }: { code: string }) {
     return (
       <main className="flex min-h-dvh flex-1 flex-col justify-between px-6 pb-[max(2rem,env(safe-area-inset-bottom))] pt-16">
         <div className="animate-fade-up">
-          <p className="font-mono text-xs uppercase tracking-[0.2em] text-fg-tertiary">Room {code}</p>
-          <h1 className="mt-4 font-display text-5xl leading-[1.02]">What should we call you?</h1>
+          <Text variant="overline">Room {code}</Text>
+          <Text as="h1" variant="display-m" className="mt-4">
+            What should we call you?
+          </Text>
         </div>
         <form
           className="flex flex-col gap-3 animate-fade-up"
@@ -69,15 +70,18 @@ export function ControllerScreen({ code }: { code: string }) {
             setName(n);
           }}
         >
-          <input
-            autoFocus
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            maxLength={16}
-            placeholder="Your name"
-            className="h-14 rounded-2xl border border-line-strong bg-surface-raised px-5 text-lg outline-none transition-colors placeholder:text-fg-tertiary focus:border-fg-primary/40"
-          />
-          <Button type="submit" className="h-14">
+          <Field label="Your name" htmlFor="player-name" hideLabel>
+            <Input
+              id="player-name"
+              autoFocus
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              maxLength={16}
+              placeholder="Your name"
+              autoComplete="nickname"
+            />
+          </Field>
+          <Button type="submit" size="lg">
             Join room
           </Button>
         </form>
@@ -90,7 +94,7 @@ export function ControllerScreen({ code }: { code: string }) {
 
 function Connected({ code, name }: { code: string; name: string }) {
   const { client, status, player, layout, rtt } = useController(code, name);
-  const color = player ? PLAYER_COLOR[player.slot] : "#f4ece2";
+  const color = player ? PLAYER_COLORS[player.slot] : palette.fgPrimary;
   const notice = status !== "connected" ? STATUS_COPY[status] : undefined;
 
   return (
@@ -103,7 +107,9 @@ function Connected({ code, name }: { code: string; name: string }) {
       <header className="relative z-10 flex items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))]">
         <div className="flex items-center gap-2.5">
           <span className="h-2.5 w-2.5 rounded-full" style={{ background: color, boxShadow: `0 0 16px ${color}` }} />
-          <span className="text-sm">{name}</span>
+          <Text as="span" variant="body-s" tone="primary">
+            {name}
+          </Text>
         </div>
         <span className="font-mono text-[11px] text-fg-tertiary">
           {status === "connected" && rtt !== null ? `${Math.round(rtt)} ms` : code}
@@ -117,8 +123,8 @@ function Connected({ code, name }: { code: string; name: string }) {
       <div className="relative z-10 flex-1 pb-[env(safe-area-inset-bottom)]">
         {notice ? (
           <div className="flex h-full flex-col items-center justify-center px-8 text-center">
-            <h2 className="font-display text-4xl">{notice.title}</h2>
-            <p className="mt-3 text-fg-secondary">{notice.body}</p>
+            <Text variant="display-s">{notice.title}</Text>
+            <Text className="mt-3">{notice.body}</Text>
             {(status === "room-not-found" || status === "outdated") && (
               <Button
                 variant="ghost"

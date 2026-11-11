@@ -1,5 +1,6 @@
 import { GAMES } from "@/games/registry";
 import { isPlayable } from "@/games/types";
+import { Text } from "@/design-system";
 
 export function GamePicker({ selected, onSelect }: { selected: string | null; onSelect: (id: string) => void }) {
   return (
@@ -12,7 +13,7 @@ export function GamePicker({ selected, onSelect }: { selected: string | null; on
             <button
               disabled={!playable}
               onClick={() => onSelect(g.id)}
-              className={`group flex w-full items-center gap-4 rounded-2xl border px-4 py-3 text-left transition-all duration-300 ${
+              className={`group flex w-full items-center gap-4 rounded-md border px-4 py-3 text-left transition-all duration-300 ${
                 active ? "border-fg-primary/40 bg-fg-primary/[0.06]" : "border-transparent hover:bg-fg-primary/[0.03]"
               } disabled:cursor-default`}
             >
@@ -24,11 +25,17 @@ export function GamePicker({ selected, onSelect }: { selected: string | null; on
                 }}
               />
               <span className="min-w-0 flex-1">
-                <span className={`block text-[15px] ${playable ? "" : "text-fg-tertiary"}`}>{g.title}</span>
-                <span className="block truncate text-xs text-fg-tertiary">{g.tagline}</span>
+                <Text as="span" tone={playable ? "primary" : "tertiary"} className="block">
+                  {g.title}
+                </Text>
+                <Text as="span" variant="body-s" tone="tertiary" className="block truncate">
+                  {g.tagline}
+                </Text>
               </span>
               {!playable && (
-                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-fg-tertiary">Soon</span>
+                <Text as="span" variant="overline">
+                  Soon
+                </Text>
               )}
             </button>
           </li>

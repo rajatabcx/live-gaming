@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { createRoomCode } from "@/lib/room-code";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/design-system";
 
 export function StartRoomButton({ label = "Start a room" }: { label?: string }) {
   const router = useRouter();

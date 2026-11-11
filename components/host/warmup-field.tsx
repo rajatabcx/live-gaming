@@ -3,8 +3,9 @@
 import { useEffect, useRef } from "react";
 import type { HostRoom } from "@/lib/realtime/host-room";
 import type { PlayerInfo, PlayerSlot } from "@/lib/realtime/protocol";
+import { PLAYER_COLORS, palette } from "@/design-system/palette";
 
-const COLORS: Record<PlayerSlot, string> = { 0: "#ff8a7a", 1: "#8fb8ff" };
+const COLORS: Record<PlayerSlot, string> = PLAYER_COLORS;
 const SPEED = 520; // px/s at full stick
 const DAMPING = 6;
 
@@ -128,7 +129,7 @@ export function WarmupField({ room, players }: { room: HostRoom; players: Player
         ctx.beginPath();
         ctx.arc(o.x, o.y, radius * 4, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = "#f4ece2";
+        ctx.fillStyle = palette.fgPrimary;
         ctx.beginPath();
         ctx.arc(o.x, o.y, radius * 0.35, 0, Math.PI * 2);
         ctx.fill();

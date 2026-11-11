@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Panel, Text } from "@/design-system";
 import { QrCode } from "./qr-code";
 
 export function JoinPanel({ url, code }: { url: string; code: string }) {
@@ -18,14 +19,16 @@ export function JoinPanel({ url, code }: { url: string; code: string }) {
   };
 
   return (
-    <div className="w-full max-w-[340px] rounded-[28px] border border-line-subtle bg-surface-base/60 p-6 backdrop-blur-2xl">
-      <div className="rounded-2xl bg-action-primary p-5">
+    <Panel className="w-full max-w-[340px] p-6">
+      <div className="rounded-md bg-action-primary p-5">
         <QrCode value={url} />
       </div>
-      <p className="mt-6 font-mono text-[11px] uppercase tracking-[0.16em] text-fg-tertiary">Scan with your phones</p>
-      <p className="mt-2 text-sm leading-relaxed text-fg-secondary">
+      <Text variant="overline" className="mt-6">
+        Scan with your phones
+      </Text>
+      <Text variant="body-s" className="mt-2">
         Or open <span className="text-fg-primary">{pretty.split("/play/")[0]}/join</span> and enter
-      </p>
+      </Text>
       <p className="mt-3 font-display text-6xl leading-none tracking-[0.12em]">{code}</p>
       <button
         onClick={copy}
@@ -33,6 +36,6 @@ export function JoinPanel({ url, code }: { url: string; code: string }) {
       >
         {copied ? "Link copied" : "Copy invite link"}
       </button>
-    </div>
+    </Panel>
   );
 }

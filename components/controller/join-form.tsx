@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { normalizeRoomCode, ROOM_CODE_LENGTH } from "@/lib/room-code";
-import { Button } from "@/components/ui/button";
+import { Button, Input } from "@/design-system";
 
 export function JoinForm() {
   const router = useRouter();
@@ -18,7 +18,8 @@ export function JoinForm() {
         if (code) router.push(`/play/${code}`);
       }}
     >
-      <input
+      <Input
+        aria-label="Room code"
         autoFocus
         value={value}
         onChange={(e) => setValue(e.target.value.toUpperCase().slice(0, ROOM_CODE_LENGTH))}
@@ -26,9 +27,9 @@ export function JoinForm() {
         autoCapitalize="characters"
         autoComplete="off"
         spellCheck={false}
-        className="h-20 rounded-2xl border border-line-strong bg-surface-raised text-center font-display text-5xl tracking-[0.3em] outline-none transition-colors placeholder:text-fg-primary/15 focus:border-fg-primary/40"
+        className="h-20 text-center font-display text-5xl tracking-[0.3em] placeholder:text-fg-primary/15"
       />
-      <Button type="submit" disabled={!code} className="h-14">
+      <Button type="submit" size="lg" disabled={!code}>
         Join
       </Button>
     </form>

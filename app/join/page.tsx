@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { JoinForm } from "@/components/controller/join-form";
-import { Wordmark } from "@/design-system";
+import { Text, Wordmark } from "@/design-system";
 
 export const metadata: Metadata = { title: "Join" };
 
@@ -10,8 +10,12 @@ export default function JoinPage() {
       <Wordmark />
       <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-10">
         <div className="animate-fade-up">
-          <h1 className="font-display text-5xl leading-[1.02]">Enter the room code</h1>
-          <p className="mt-3 text-fg-secondary">It&apos;s the four letters on the big screen.</p>
+          <Text as="h1" variant="display-m">
+            Enter the room code
+          </Text>
+          <Text variant="body-l" className="mt-3">
+            It&apos;s the four letters on the big screen.
+          </Text>
         </div>
         <div className="animate-fade-up" style={{ animationDelay: "100ms" }}>
           <JoinForm />

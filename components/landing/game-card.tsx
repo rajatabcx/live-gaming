@@ -1,5 +1,6 @@
 import type { GameDefinition } from "@/games/types";
 import { isPlayable } from "@/games/types";
+import { Badge, Text } from "@/design-system";
 
 const MOOD_LABEL: Record<GameDefinition["mood"], string> = {
   "co-op": "Co-op",
@@ -14,7 +15,7 @@ export function GameCard({ game, index }: { game: GameDefinition; index: number 
   const playable = isPlayable(game);
   return (
     <article
-      className="group relative flex flex-col overflow-hidden rounded-3xl border border-line-subtle bg-surface-raised transition-colors duration-500 hover:border-line-strong animate-fade-up"
+      className="group relative flex flex-col overflow-hidden rounded-lg border border-line-subtle bg-surface-raised transition-colors duration-500 hover:border-line-strong animate-fade-up"
       style={{ animationDelay: `${120 + index * 80}ms` }}
     >
       <div className="relative aspect-[4/3] overflow-hidden">
@@ -26,19 +27,19 @@ export function GameCard({ game, index }: { game: GameDefinition; index: number 
           }}
         />
         <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_55%,var(--color-surface-raised))]" />
-        <span className="absolute left-5 top-5 rounded-full border border-fg-primary/15 bg-surface-base/40 px-3 py-1 text-xs tracking-wide text-fg-primary/80 backdrop-blur-md">
-          {MOOD_LABEL[game.mood]}
-        </span>
+        <Badge className="absolute left-5 top-5">{MOOD_LABEL[game.mood]}</Badge>
         {!playable && (
-          <span className="absolute right-5 top-5 text-xs tracking-wide text-fg-primary/60">Coming soon</span>
+          <Text as="span" variant="overline" className="absolute right-5 top-6">
+            Soon
+          </Text>
         )}
       </div>
       <div className="flex flex-1 flex-col gap-2 p-6 pt-2">
-        <h3 className="font-display text-3xl tracking-tight">{game.title}</h3>
-        <p className="text-[15px] leading-relaxed text-fg-secondary">{game.tagline}</p>
-        <p className="mt-auto pt-4 font-mono text-xs uppercase tracking-[0.14em] text-fg-tertiary">
+        <Text variant="display-s">{game.title}</Text>
+        <Text>{game.tagline}</Text>
+        <Text variant="overline" className="mt-auto pt-4">
           2 players · {game.minutes}
-        </p>
+        </Text>
       </div>
     </article>
   );

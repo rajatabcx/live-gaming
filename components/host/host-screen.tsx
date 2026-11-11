@@ -8,8 +8,7 @@ import { useHostRoom } from "@/lib/realtime/hooks";
 import type { HostStatus } from "@/lib/realtime/host-room";
 import { joinUrl } from "@/lib/join-url";
 import { createRoomCode } from "@/lib/room-code";
-import { Button } from "@/components/ui/button";
-import { Wordmark } from "@/design-system";
+import { Button, Panel, Text, Wordmark } from "@/design-system";
 import { GamePicker } from "./game-picker";
 import { JoinPanel } from "./join-panel";
 import { Seat } from "./seat";
@@ -57,10 +56,12 @@ export function HostScreen({ code }: { code: string }) {
   if (status === "code-taken") {
     return (
       <Centered>
-        <h1 className="font-display text-5xl">This room is open elsewhere</h1>
-        <p className="mt-4 max-w-sm text-fg-secondary">
+        <Text as="h1" variant="display-m">
+          This room is open elsewhere
+        </Text>
+        <Text variant="body-l" className="mt-4 max-w-sm">
           Room {code} is already running in another tab or on another screen.
-        </p>
+        </Text>
         <Button className="mt-8" onClick={() => router.replace(`/room/${createRoomCode()}`)}>
           Open a fresh room
         </Button>
@@ -92,9 +93,9 @@ export function HostScreen({ code }: { code: string }) {
         <div className="pointer-events-auto animate-fade-up">{url && <JoinPanel url={url} code={code} />}</div>
 
         <div className="hidden text-center lg:block">
-          <p className="font-display text-3xl italic text-fg-tertiary">
+          <Text variant="display-italic" tone="tertiary" className="text-3xl">
             {bothHere ? "Move around. Find each other." : "Your room is ready."}
-          </p>
+          </Text>
         </div>
 
         <aside className="pointer-events-auto flex flex-col gap-6 animate-fade-up" style={{ animationDelay: "120ms" }}>
@@ -103,14 +104,14 @@ export function HostScreen({ code }: { code: string }) {
             <Seat slot={1} player={seats[1]} />
           </div>
 
-          <div className="rounded-[28px] border border-line-subtle bg-surface-base/60 p-3 backdrop-blur-2xl">
-            <p className="px-3 pb-2 pt-2 font-mono text-[11px] uppercase tracking-[0.16em] text-fg-tertiary">
+          <Panel className="p-3">
+            <Text variant="overline" className="px-3 pb-2 pt-2">
               Choose a game
-            </p>
+            </Text>
             <GamePicker selected={gameId} onSelect={setGameId} />
-          </div>
+          </Panel>
 
-          <Button disabled={!game || !isPlayable(game) || !bothHere} onClick={start} className="h-14">
+          <Button size="lg" disabled={!game || !isPlayable(game) || !bothHere} onClick={start}>
             {!bothHere ? "Waiting for both players" : !game ? "Pick a game" : `Play ${game.title}`}
           </Button>
         </aside>
