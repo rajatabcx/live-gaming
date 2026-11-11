@@ -46,6 +46,16 @@ export const GAMES: GameDefinition[] = [
     palette: ["#f4b8d4", "#5b5bd6"],
   },
   {
+    id: "wobble-run",
+    title: "Wobble Run",
+    tagline: "A wobbly obstacle course. Race — or carry each other.",
+    description:
+      "Jelly-legged runners on a candy-coloured gauntlet of spinners, seesaws and falling floors. Race to the finish, or switch to co-op and get both of you across.",
+    mood: "versus",
+    minutes: "10–20 min",
+    palette: ["#ffd36e", "#ff6fa5"],
+  },
+  {
     id: "bump",
     title: "Bump",
     tagline: "A shrinking island. Push them off first.",
