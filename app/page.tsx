@@ -7,7 +7,7 @@ import { Button, Text, Wordmark } from "@/design-system";
 const STEPS = [
   { n: "01", title: "Open a room", body: "On a laptop or TV. Pick something to play." },
   { n: "02", title: "Scan with your phones", body: "Each phone becomes a controller. No app, no account." },
-  { n: "03", title: "Play together", body: "One screen, two of you, the couch." },
+  { n: "03", title: "Play together", body: "On one couch, or miles apart — send the link and it opens on their laptop too." },
 ];
 
 export default function Home() {

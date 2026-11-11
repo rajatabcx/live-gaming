@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useController } from "@/lib/realtime/hooks";
 import type { ControllerStatus } from "@/lib/realtime/controller-client";
 import { Button, Field, Input, PLAYER_COLORS, Text, palette } from "@/design-system";
+import { RemoteScreen } from "@/components/screen/remote-screen";
 import { Gamepad } from "./gamepad";
 
 const NAME_KEY = "duet.name";
@@ -27,6 +28,18 @@ function readName() {
   }
 }
 
+/**
+ * One invite link for everyone: a phone becomes a controller, a laptop (fine
+ * pointer, wide screen) becomes a remote screen for long-distance play.
+ * `?screen` / `?pad` force either.
+ */
+function wantsScreen() {
+  const q = new URLSearchParams(location.search);
+  if (q.has("screen")) return true;
+  if (q.has("pad")) return false;
+  return matchMedia("(pointer: fine)").matches && innerWidth >= 900;
+}
+
 /** Best-effort: keep the phone awake and go fullscreen where supported. */
 async function enterPlayMode() {
   try {
@@ -42,10 +55,12 @@ async function enterPlayMode() {
 export function ControllerScreen({ code }: { code: string }) {
   const [name, setName] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  const [screen, setScreen] = useState(false);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- reads localStorage after hydration
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reads localStorage and the device after hydration
     setDraft(readName());
+    setScreen(wantsScreen());
   }, []);
 
   if (name === null) {
@@ -66,7 +81,7 @@ export function ControllerScreen({ code }: { code: string }) {
             try {
               localStorage.setItem(NAME_KEY, n);
             } catch {}
-            enterPlayMode();
+            if (!screen) enterPlayMode();
             setName(n);
           }}
         >
@@ -89,7 +104,7 @@ export function ControllerScreen({ code }: { code: string }) {
     );
   }
 
-  return <Connected code={code} name={name} />;
+  return screen ? <RemoteScreen code={code} name={name} /> : <Connected code={code} name={name} />;
 }
 
 function Connected({ code, name }: { code: string; name: string }) {
