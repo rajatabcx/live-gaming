@@ -4,11 +4,13 @@ import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { useRouter } from "next/navigation";
 import { getGame } from "@/games/registry";
 import { isPlayable, type GameProps } from "@/games/types";
-import { useHostRoom } from "@/lib/realtime/hooks";
+import { useHostRoom, useLocalSeat } from "@/lib/realtime/hooks";
 import type { HostStatus } from "@/lib/realtime/host-room";
 import { joinUrl } from "@/lib/join-url";
 import { createRoomCode } from "@/lib/room-code";
-import { Button, Panel, Text, Wordmark } from "@/design-system";
+import { Button, PLAYER_COLORS, Panel, Text, Wordmark } from "@/design-system";
+import { KeyHints } from "@/components/play/key-hints";
+import { LocalSeat } from "./local-seat";
 import { GamePicker } from "./game-picker";
 import { JoinPanel } from "./join-panel";
 import { Seat } from "./seat";
@@ -24,7 +26,8 @@ const STATUS_COPY: Record<HostStatus, string> = {
 
 export function HostScreen({ code }: { code: string }) {
   const router = useRouter();
-  const { room, status, players } = useHostRoom(code);
+  const { room, status, players, layout } = useHostRoom(code);
+  const { localName, joinLocal, leaveLocal } = useLocalSeat(room);
   const [gameId, setGameId] = useState<string | null>(null);
   const [Game, setGame] = useState<ComponentType<GameProps> | null>(null);
   const [url, setUrl] = useState("");
@@ -56,7 +59,18 @@ export function HostScreen({ code }: { code: string }) {
     if (status === "code-taken") router.replace(`/room/${createRoomCode()}`);
   }, [status, router]);
 
-  if (Game && room) return <Game role="host" room={room} players={players} onExit={exit} />;
+  const localSlot = localName !== null ? players.find((p) => p.id === room?.localPlayer?.id)?.slot : undefined;
+
+  if (Game && room) {
+    return (
+      <>
+        <Game role="host" room={room} players={players} onExit={exit} />
+        {localSlot !== undefined && (
+          <KeyHints layout={layout} color={PLAYER_COLORS[localSlot]} className="fixed bottom-6 left-1/2 z-10 -translate-x-1/2 animate-fade-up" />
+        )}
+      </>
+    );
+  }
 
   if (status === "code-taken") {
     return (
@@ -107,6 +121,7 @@ export function HostScreen({ code }: { code: string }) {
           <div className="flex flex-col gap-2.5">
             <Seat slot={0} player={seats[0]} />
             <Seat slot={1} player={seats[1]} />
+            <LocalSeat localName={localName} canJoin={players.length < 2} onJoin={joinLocal} onLeave={leaveLocal} />
           </div>
 
           <Panel className="p-3">

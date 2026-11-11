@@ -19,7 +19,7 @@ export function Seat({ slot, player }: { slot: PlayerSlot; player?: PlayerInfo }
       <div className="min-w-0">
         <Text variant="overline">{style.label}</Text>
         <Text tone="primary" className="truncate">
-          {state === "empty" && <span className="text-fg-secondary">Waiting for a phone…</span>}
+          {state === "empty" && <span className="text-fg-secondary">Waiting for a player…</span>}
           {state === "here" && player!.name}
           {state === "away" && <span className="text-fg-secondary">{player!.name} · reconnecting</span>}
         </Text>

@@ -22,6 +22,7 @@ type HostEvents = {
   players: PlayerInfo[];
   press: { playerId: string; button: Button };
   release: { playerId: string; button: Button };
+  layout: { layout: ControllerLayout; caption?: string };
 };
 
 interface Seat {
@@ -156,6 +157,11 @@ export class HostRoom extends Emitter<HostEvents> {
   setLayout(layout: ControllerLayout, caption?: string): void {
     this.layout = { layout, caption };
     this.broadcast({ t: "layout", ...this.layout });
+    this.emit("layout", this.layout);
+  }
+
+  get currentLayout() {
+    return this.layout;
   }
 
   haptic(playerId: string, pattern: number | number[]): void {
