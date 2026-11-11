@@ -10,10 +10,11 @@ export const GAMES: GameDefinition[] = [
     title: "Tongue Tied",
     tagline: "Two frogs. One tongue each. No way up alone.",
     description:
-      "A co-op platformer where one of you anchors with a sticky tongue while the other swings, climbs and catapults. Every ledge needs both of you.",
+      "A co-op platformer on a moonlit pond. Stack up, swing from lanterns, hold the gate, and be each other's bridge — every ledge needs both of you.",
     mood: "co-op",
-    minutes: "20–40 min",
+    minutes: "10–20 min",
     palette: ["#7ee0a1", "#2f7a5b"],
+    load: () => import("./tongue-tied/game"),
   },
   {
     id: "lanterns",
