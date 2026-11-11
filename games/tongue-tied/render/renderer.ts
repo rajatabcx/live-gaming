@@ -1,13 +1,14 @@
 import { PLAYER_COLORS } from "@/design-system/palette";
-import { FROG, WORLD_H } from "../sim/constants";
+import { FROG, WORLD_H, WORLD_W } from "../sim/constants";
 import { lerp, type Vec } from "../sim/math";
 import type { Frog, Slot, World, WorldEvent } from "../sim/world";
 import { Backdrop, MOON } from "./backdrop";
-import { frogColors, mix, rgba, SCENE, type FrogColors } from "./color";
+import { mix, rgba } from "../../kit/color";
+import { Particles } from "../../kit/particles";
+import { drawGlow, seeded } from "../../kit/sprites";
+import { View } from "../../kit/view";
+import { frogColors, SCENE, type FrogColors } from "./color";
 import { drawFrog } from "./frog-art";
-import { Particles } from "./particles";
-import { drawGlow, seeded } from "./sprites";
-import { View } from "./view";
 
 interface FrogVis {
   sx: number;
@@ -44,7 +45,7 @@ const newVis = (): FrogVis => ({ sx: 1, sy: 1, vsx: 0, vsy: 0, blinkIn: 2 + Math
  */
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
-  private view = new View();
+  private view = new View(WORLD_W, WORLD_H);
   private backdrop = new Backdrop();
   private particles = new Particles();
   private colors: [FrogColors, FrogColors] = [frogColors(PLAYER_COLORS[0]), frogColors(PLAYER_COLORS[1])];

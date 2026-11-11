@@ -1,5 +1,6 @@
-import { SCENE, rgba, type FrogColors } from "./color";
-import { drawGlow } from "./sprites";
+import { rgba } from "../../kit/color";
+import { drawGlow } from "../../kit/sprites";
+import { SCENE, type FrogColors } from "./color";
 
 export interface FrogPose {
   /** Feet centre, world space. */

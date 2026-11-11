@@ -1,9 +1,10 @@
 import { WORLD_H, WORLD_W } from "../sim/constants";
 import type { LevelData } from "../sim/level";
 import type { Rect } from "../sim/math";
-import { rgba, SCENE } from "./color";
-import { seeded } from "./sprites";
-import type { View } from "./view";
+import { rgba } from "../../kit/color";
+import { seeded } from "../../kit/sprites";
+import type { View } from "../../kit/view";
+import { SCENE } from "./color";
 
 export const MOON = { x: 1300, y: 140, r: 44 };
 

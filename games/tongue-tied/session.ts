@@ -1,5 +1,6 @@
 import type { PlayerInfo, PlayerSlot } from "@/lib/realtime/protocol";
 import type { GameRoom } from "../types";
+import { Store } from "../kit/store";
 import { Sfx } from "./audio";
 import { LEVELS } from "./levels";
 import { STEP } from "./sim/constants";
@@ -65,8 +66,7 @@ export class Session {
   private latch: Record<Slot, { jump: boolean; tongue: boolean }> = { 0: { jump: false, tongue: false }, 1: { jump: false, tongue: false } };
   private players: PlayerInfo[] = [];
   private runFireflies = 0;
-  private hud: HudState;
-  private listeners = new Set<() => void>();
+  private store: Store<HudState>;
   private cleanup: (() => void)[] = [];
 
   constructor(
@@ -77,7 +77,7 @@ export class Session {
     this.renderer = new Renderer(canvas);
     const start = readProgress();
     this.world = new World(LEVELS[start]);
-    this.hud = {
+    this.store = new Store<HudState>({
       levelIndex: start,
       levelCount: LEVELS.length,
       name: LEVELS[start].name,
@@ -93,7 +93,11 @@ export class Session {
       clearLine: CLEAR_LINES[0],
       muted: this.sfx.muted,
       waitingFor: null,
-    };
+    });
+  }
+
+  private get hud() {
+    return this.store.get();
   }
 
   // ─── Lifecycle ──────────────────────────────────────────────────────────────
@@ -121,7 +125,7 @@ export class Session {
     cancelAnimationFrame(this.raf);
     this.cleanup.forEach((fn) => fn());
     this.sfx.destroy();
-    this.listeners.clear();
+    this.store.clear();
   }
 
   setPlayers(players: PlayerInfo[]) {
@@ -135,16 +139,12 @@ export class Session {
 
   // ─── HUD store (useSyncExternalStore) ───────────────────────────────────────
 
-  subscribe = (fn: () => void) => {
-    this.listeners.add(fn);
-    return () => this.listeners.delete(fn);
-  };
+  subscribe = (fn: () => void) => this.store.subscribe(fn);
 
-  getHud = () => this.hud;
+  getHud = () => this.store.get();
 
   private setHud(patch: Partial<HudState>) {
-    this.hud = { ...this.hud, ...patch };
-    this.listeners.forEach((fn) => fn());
+    this.store.set(patch);
   }
 
   // ─── Commands (HUD buttons and phone buttons) ───────────────────────────────
