@@ -11,8 +11,8 @@ export const CHAPTERS: ChapterData[] = [
     subtitle: "Light it together",
     hint: "Float to a star — together",
     spawns: [
-      { x: 700, y: 780 },
-      { x: 900, y: 780 },
+      { x: 700, y: 730 },
+      { x: 900, y: 730 },
     ],
     stars: [
       { x: 500, y: 560 },
@@ -41,8 +41,8 @@ export const CHAPTERS: ChapterData[] = [
     subtitle: "Mind the currents",
     hint: "Some stars hide — glow to find them",
     spawns: [
-      { x: 700, y: 780 },
-      { x: 900, y: 780 },
+      { x: 700, y: 730 },
+      { x: 900, y: 730 },
     ],
     stars: [
       { x: 1250, y: 255, hidden: true },
@@ -76,8 +76,8 @@ export const CHAPTERS: ChapterData[] = [
     name: "The Whale",
     subtitle: "Until morning",
     spawns: [
-      { x: 700, y: 780 },
-      { x: 900, y: 780 },
+      { x: 700, y: 730 },
+      { x: 900, y: 730 },
     ],
     stars: [
       { x: 230, y: 300 },

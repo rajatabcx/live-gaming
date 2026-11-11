@@ -69,6 +69,22 @@ export class Synth {
     o.stop(at + dur + 0.02);
   }
 
+  /** A slow-swelling sine with a soft release, for ambient beds. */
+  protected pad(freq: number, at: number, dur: number, gain: number, attack = 1.2) {
+    const ctx = this.ctx!;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = "sine";
+    o.frequency.setValueAtTime(freq, at);
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.exponentialRampToValueAtTime(gain, at + attack);
+    g.gain.setValueAtTime(gain, at + Math.max(attack, dur - attack));
+    g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+    o.connect(g).connect(this.master!);
+    o.start(at);
+    o.stop(at + dur + 0.05);
+  }
+
   protected bell(freq: number, at: number, dur: number, gain: number) {
     this.tone("sine", freq, freq, at, dur, gain);
     this.tone("sine", freq * 2.01, freq * 2.01, at, dur * 0.4, gain * 0.3);

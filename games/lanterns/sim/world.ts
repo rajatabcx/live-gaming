@@ -51,6 +51,8 @@ export class World {
   stars: Star[] = [];
   time = 0;
   complete = false;
+  /** While true (between chapters) lanterns fly but nothing kindles or glows. */
+  quiet = false;
   private kindling = new Set<number>();
   private events: WorldEvent[] = [];
 
@@ -88,6 +90,7 @@ export class World {
     this.events = [];
     this.time += STEP;
     for (const l of this.lanterns) this.move(l, inputs[l.slot]);
+    if (this.quiet) return this.events;
     for (const l of this.lanterns) if (inputs[l.slot].glowPressed) this.glow(l);
     if (!this.complete) this.kindle();
     return this.events;
