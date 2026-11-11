@@ -1,4 +1,4 @@
-import type { Rect, Vec } from "./math";
+import type { Rect, Vec } from "../../kit/math";
 import type { World } from "./world";
 
 /**

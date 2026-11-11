@@ -1,6 +1,6 @@
 import { PLAYER_COLORS } from "@/design-system/palette";
 import { FROG, WORLD_H, WORLD_W } from "../sim/constants";
-import { lerp, type Vec } from "../sim/math";
+import { lerp, type Vec } from "../../kit/math";
 import type { Frog, Slot, World, WorldEvent } from "../sim/world";
 import { Backdrop, MOON } from "./backdrop";
 import { mix, rgba } from "../../kit/color";

@@ -14,7 +14,7 @@ import {
   vec,
   type Rect,
   type Vec,
-} from "./math";
+} from "../../kit/math";
 
 export type Slot = 0 | 1;
 

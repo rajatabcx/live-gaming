@@ -1,6 +1,6 @@
 import { WORLD_H, WORLD_W } from "../sim/constants";
 import type { LevelData } from "../sim/level";
-import type { Rect } from "../sim/math";
+import type { Rect } from "../../kit/math";
 import { rgba } from "../../kit/color";
 import { seeded } from "../../kit/sprites";
 import type { View } from "../../kit/view";
