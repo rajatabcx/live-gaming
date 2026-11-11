@@ -34,8 +34,9 @@ export const GAMES: GameDefinition[] = [
     description:
       "A calm, wordless journey. Guide two paper lanterns through the dark — stars only ignite when you reach them side by side.",
     mood: "chill",
-    minutes: "10–20 min",
+    minutes: "5–10 min",
     palette: ["#ffc58a", "#7a4a8f"],
+    load: () => import("./lanterns/game"),
   },
   {
     id: "night-kitchen",
