@@ -10,7 +10,9 @@ export class Emitter<Events extends Record<string, unknown>> {
   }
 
   protected emit<K extends keyof Events>(event: K, payload: Events[K]): void {
-    this.listeners.get(event)?.forEach((fn) => (fn as (p: Events[K]) => void)(payload));
+    // Snapshot: listeners added while emitting don't receive this event.
+    const set = this.listeners.get(event);
+    if (set) for (const fn of [...set]) (fn as (p: Events[K]) => void)(payload);
   }
 
   protected clearListeners(): void {
