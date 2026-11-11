@@ -93,7 +93,7 @@ export function ControllerScreen({ code }: { code: string }) {
 }
 
 function Connected({ code, name }: { code: string; name: string }) {
-  const { client, status, player, layout, rtt } = useController(code, name);
+  const { client, status, player, layout, rtt, mode } = useController(code, name);
   const color = player ? PLAYER_COLORS[player.slot] : palette.fgPrimary;
   const notice = status !== "connected" ? STATUS_COPY[status] : undefined;
 
@@ -112,7 +112,7 @@ function Connected({ code, name }: { code: string; name: string }) {
           </Text>
         </div>
         <span className="font-mono text-[11px] text-fg-tertiary">
-          {status === "connected" && rtt !== null ? `${Math.round(rtt)} ms` : code}
+          {status === "connected" && rtt !== null ? `${Math.round(rtt)} ms · ${mode === "relay" ? "relay" : "direct"}` : code}
         </span>
       </header>
 

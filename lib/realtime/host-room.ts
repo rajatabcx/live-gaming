@@ -1,6 +1,6 @@
-import type { DataConnection, Peer } from "peerjs";
 import { Emitter } from "./emitter";
-import { hostPeerId, loadPeer, peerOptions } from "./peer-config";
+import { randomId } from "./ids";
+import { LinkAcceptor, type Link } from "./link";
 import {
   NEUTRAL_INPUT,
   PROTOCOL_VERSION,
@@ -11,6 +11,7 @@ import {
   type PlayerInfo,
   type PlayerSlot,
 } from "./protocol";
+import { Signaling } from "./signaling";
 
 export type HostStatus = "starting" | "open" | "reconnecting" | "code-taken" | "error";
 export type Button = "a" | "b";
@@ -24,15 +25,14 @@ type HostEvents = {
 
 interface Seat {
   info: PlayerInfo;
-  conn: DataConnection | null;
+  conn: Link | null;
   input: InputState;
   lastSeq: number;
 }
 
 const MAX_PLAYERS = 2;
-/** After a reload the broker may still hold our old id for a moment. */
-const TAKEN_RETRIES = 2;
-const TAKEN_RETRY_MS = 1500;
+/** After a reload the old tab's presence can linger briefly; only an older host that sticks around wins. */
+const TAKEN_GRACE_MS = 3000;
 const SLOTS: PlayerSlot[] = [0, 1];
 
 /**
@@ -42,48 +42,48 @@ const SLOTS: PlayerSlot[] = [0, 1];
  *   persistent clientId, so a locked screen doesn't kick someone out.
  * - Keeps the latest input snapshot per player for games to poll each frame,
  *   and emits press/release edges for event-style handling.
+ * - Transport: Supabase channel for meeting + WebRTC (or relay) links per phone.
  */
 export class HostRoom extends Emitter<HostEvents> {
-  private peer: Peer | null = null;
+  readonly selfId = randomId(8);
+  private sig: Signaling | null = null;
+  private acceptor: LinkAcceptor | null = null;
   private seats = new Map<string, Seat>();
   private layout: { layout: ControllerLayout; caption?: string } = { layout: { kind: "lobby" } };
   private gameId: string | null = null;
   private destroyed = false;
-  private takenRetries = 0;
+  private takenTimer: ReturnType<typeof setTimeout> | null = null;
   status: HostStatus = "starting";
 
   constructor(readonly code: string) {
     super();
   }
 
-  async start(): Promise<void> {
-    const PeerCtor = await loadPeer();
+  start(): void {
     if (this.destroyed) return;
-    this.peer?.destroy();
+    const sig = new Signaling(this.code, this.selfId, "host");
+    this.sig = sig;
+    this.acceptor = new LinkAcceptor(sig, (link) => this.accept(link));
 
-    const peer = new PeerCtor(hostPeerId(this.code), peerOptions());
-    this.peer = peer;
+    sig.on("status", (s) => {
+      if (this.status === "code-taken") return;
+      this.setStatus(s === "joined" ? "open" : "reconnecting");
+    });
+    sig.on("presence", () => this.checkForOtherHost());
+    sig.join();
+  }
 
-    peer.on("open", () => this.setStatus("open"));
-    peer.on("connection", (conn) => this.accept(conn));
-    peer.on("disconnected", () => {
-      // Lost the broker, not the players: existing data channels keep working.
-      if (this.destroyed) return;
-      this.setStatus("reconnecting");
-      setTimeout(() => !this.destroyed && peer.reconnect(), 1500);
-    });
-    peer.on("error", (err) => {
-      if (err.type === "unavailable-id") {
-        if (this.takenRetries++ < TAKEN_RETRIES) setTimeout(() => !this.destroyed && this.start(), TAKEN_RETRY_MS);
-        else this.setStatus("code-taken");
-      }
-      else if (err.type === "network" || err.type === "server-error" || err.type === "socket-closed") {
-        this.setStatus("reconnecting");
-      } else if (err.type !== "peer-unavailable") {
-        console.error("[host]", err.type, err);
-        this.setStatus("error");
-      }
-    });
+  /** Two screens on one code: the one that was there first keeps it. */
+  private checkForOtherHost() {
+    const older = this.sig?.peersWithRole("host").some((h) => h.since < this.sig!.joinedAt);
+    if (!older) {
+      if (this.takenTimer) clearTimeout(this.takenTimer);
+      this.takenTimer = null;
+      return;
+    }
+    this.takenTimer ??= setTimeout(() => {
+      if (this.sig?.peersWithRole("host").some((h) => h.since < this.sig!.joinedAt)) this.setStatus("code-taken");
+    }, TAKEN_GRACE_MS);
   }
 
   // ─── Queries ───────────────────────────────────────────────────────────────
@@ -123,14 +123,24 @@ export class HostRoom extends Emitter<HostEvents> {
     if (conn?.open) conn.send(msg);
   }
 
+  /** How each phone is connected — handy for a debug overlay. */
+  linkMode(playerId: string) {
+    return this.seats.get(playerId)?.conn?.mode ?? null;
+  }
+
   broadcast(msg: HostMessage): void {
     for (const seat of this.seats.values()) if (seat.conn?.open) seat.conn.send(msg);
   }
 
   destroy(): void {
     this.destroyed = true;
-    for (const seat of this.seats.values()) seat.conn?.close();
-    this.peer?.destroy();
+    if (this.takenTimer) clearTimeout(this.takenTimer);
+    for (const seat of this.seats.values()) {
+      if (seat.conn) this.sig?.send({ kind: "bye", from: this.selfId, to: seat.conn.peerId });
+      seat.conn?.close();
+    }
+    this.acceptor?.dispose();
+    this.sig?.leave();
     this.clearListeners();
   }
 
@@ -145,10 +155,10 @@ export class HostRoom extends Emitter<HostEvents> {
     this.emit("players", this.players);
   }
 
-  private accept(conn: DataConnection) {
+  private accept(conn: Link) {
     let seat: Seat | null = null;
 
-    conn.on("data", (raw) => {
+    conn.on("message", (raw) => {
       if (!isControllerMessage(raw)) return;
       const msg = raw;
 
@@ -181,11 +191,10 @@ export class HostRoom extends Emitter<HostEvents> {
     });
 
     conn.on("close", () => this.release(seat, conn));
-    conn.on("error", () => this.release(seat, conn));
   }
 
   /** Find or assign a seat. Returning players reclaim theirs. */
-  private seat(clientId: string, name: string, conn: DataConnection): Seat | null {
+  private seat(clientId: string, name: string, conn: Link): Seat | null {
     const existing = this.seats.get(clientId);
     if (existing) {
       existing.conn?.close();
@@ -217,7 +226,7 @@ export class HostRoom extends Emitter<HostEvents> {
     return seat;
   }
 
-  private release(seat: Seat | null, conn: DataConnection) {
+  private release(seat: Seat | null, conn: Link) {
     if (!seat || seat.conn !== conn) return; // superseded by a reconnect
     seat.conn = null;
     seat.info = { ...seat.info, connected: false };

@@ -1,6 +1,6 @@
-import type { DataConnection, Peer } from "peerjs";
 import { Emitter } from "./emitter";
-import { hostPeerId, loadPeer, peerOptions } from "./peer-config";
+import { randomId } from "./ids";
+import { dial, type Link, type LinkMode } from "./link";
 import {
   PROTOCOL_VERSION,
   isHostMessage,
@@ -9,6 +9,7 @@ import {
   type InputState,
   type PlayerInfo,
 } from "./protocol";
+import { Signaling } from "./signaling";
 
 export type ControllerStatus =
   | "connecting"
@@ -23,17 +24,15 @@ type ControllerEvents = {
   welcome: { player: PlayerInfo; gameId: string | null };
   layout: { layout: ControllerLayout; caption?: string };
   rtt: number;
+  mode: LinkMode;
 };
 
 const CLIENT_ID_KEY = "duet.clientId";
 const PING_INTERVAL_MS = 2000;
+const NOT_FOUND_AFTER_MS = 8000;
 const MAX_RETRY_DELAY_MS = 5000;
-
-/** randomUUID needs a secure context; LAN dev over http doesn't have one. */
-function randomId(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(16));
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-}
+/** Broadcast relay has per-second limits; WebRTC doesn't. */
+const RELAY_INPUT_INTERVAL_MS = 50;
 
 /** Stable per-device id so reconnecting reclaims the same seat. */
 function clientId(): string {
@@ -50,17 +49,22 @@ function clientId(): string {
 }
 
 /**
- * The phone side of a room. Sends input, receives layout/haptics.
+ * The phone side of a room. Finds the host via Supabase presence, opens a
+ * link (WebRTC, or relay fallback), then sends input and receives layout/haptics.
  * Input is coalesced to one send per animation frame and sent as whole
  * snapshots with a sequence number, so the host can drop stale ones.
  */
 export class ControllerClient extends Emitter<ControllerEvents> {
-  private peer: Peer | null = null;
-  private conn: DataConnection | null = null;
+  private readonly selfId = randomId(8);
+  private sig: Signaling | null = null;
+  private link: Link | null = null;
+  private dialing = false;
   private seq = 0;
   private pending: InputState | null = null;
   private flushScheduled = false;
+  private lastSentAt = 0;
   private pingTimer: ReturnType<typeof setInterval> | null = null;
+  private notFoundTimer: ReturnType<typeof setTimeout> | null = null;
   private retries = 0;
   private destroyed = false;
   private terminal = false;
@@ -73,37 +77,31 @@ export class ControllerClient extends Emitter<ControllerEvents> {
     super();
   }
 
-  async start(): Promise<void> {
-    const PeerCtor = await loadPeer();
-    if (this.destroyed) return;
-    const peer = new PeerCtor(peerOptions());
-    this.peer = peer;
-
-    peer.on("open", () => this.dial());
-    peer.on("disconnected", () => !this.destroyed && peer.reconnect());
-    peer.on("error", (err) => {
-      if (err.type === "peer-unavailable") {
-        // Host isn't up (yet). Keep trying for a bit — they may be refreshing.
-        if (this.retries >= 4) this.setStatus("room-not-found");
-        this.scheduleRetry();
-      } else if (err.type === "network" || err.type === "socket-closed" || err.type === "server-error") {
-        this.setStatus("reconnecting");
-      } else {
-        console.error("[controller]", err.type, err);
-      }
-    });
+  start(): void {
+    const sig = new Signaling(this.code, this.selfId, "controller");
+    this.sig = sig;
+    sig.on("presence", () => this.maybeDial());
+    sig.on("status", (s) => s === "lost" && !this.link?.open && this.setStatus("reconnecting"));
+    sig.join();
+    this.armNotFound();
   }
 
   sendInput(state: InputState): void {
     this.pending = state;
     if (this.flushScheduled) return;
     this.flushScheduled = true;
-    requestAnimationFrame(() => {
+    const flush = () => {
+      if (this.link?.mode === "relay" && performance.now() - this.lastSentAt < RELAY_INPUT_INTERVAL_MS) {
+        requestAnimationFrame(flush);
+        return;
+      }
       this.flushScheduled = false;
       if (!this.pending) return;
+      this.lastSentAt = performance.now();
       this.send({ t: "input", seq: ++this.seq, s: this.pending });
       this.pending = null;
-    });
+    };
+    requestAnimationFrame(flush);
   }
 
   /** User asked to try again after a terminal state. */
@@ -111,21 +109,24 @@ export class ControllerClient extends Emitter<ControllerEvents> {
     this.terminal = false;
     this.retries = 0;
     this.setStatus("connecting");
-    this.dial();
+    this.armNotFound();
+    this.maybeDial();
   }
 
   destroy(): void {
     this.destroyed = true;
     if (this.pingTimer) clearInterval(this.pingTimer);
-    this.conn?.close();
-    this.peer?.destroy();
+    if (this.notFoundTimer) clearTimeout(this.notFoundTimer);
+    if (this.link) this.sig?.send({ kind: "bye", from: this.selfId, to: this.link.peerId });
+    this.link?.close();
+    this.sig?.leave();
     this.clearListeners();
   }
 
   // ─── Internals ─────────────────────────────────────────────────────────────
 
   private send(msg: ControllerMessage) {
-    if (this.conn?.open) this.conn.send(msg);
+    if (this.link?.open) this.link.send(msg);
   }
 
   private setStatus(status: ControllerStatus) {
@@ -134,59 +135,75 @@ export class ControllerClient extends Emitter<ControllerEvents> {
     this.emit("status", status);
   }
 
-  private dial() {
-    if (!this.peer || this.destroyed || this.terminal) return;
-    this.conn?.close();
-    const conn = this.peer.connect(hostPeerId(this.code), {
-      reliable: true,
-      serialization: "json",
-    });
-    this.conn = conn;
-
-    conn.on("open", () => {
-      this.retries = 0;
-      this.send({ t: "hello", v: PROTOCOL_VERSION, clientId: clientId(), name: this.name });
-      this.startPing();
-    });
-
-    conn.on("data", (raw) => {
-      if (!isHostMessage(raw)) return;
-      switch (raw.t) {
-        case "welcome":
-          this.setStatus("connected");
-          this.emit("welcome", { player: raw.player, gameId: raw.gameId });
-          break;
-        case "rejected":
-          this.terminal = true;
-          this.setStatus(raw.reason === "full" ? "room-full" : "outdated");
-          break;
-        case "layout":
-          this.emit("layout", { layout: raw.layout, caption: raw.caption });
-          break;
-        case "haptic":
-          navigator.vibrate?.(raw.pattern);
-          break;
-        case "pong":
-          this.emit("rtt", performance.now() - raw.at);
-          break;
-      }
-    });
-
-    conn.on("close", () => {
-      if (this.conn !== conn || this.destroyed || this.terminal) return;
-      this.setStatus("reconnecting");
-      this.scheduleRetry();
-    });
+  private armNotFound() {
+    if (this.notFoundTimer) clearTimeout(this.notFoundTimer);
+    this.notFoundTimer = setTimeout(() => {
+      if (!this.link?.open && !this.terminal) this.setStatus("room-not-found");
+    }, NOT_FOUND_AFTER_MS);
   }
 
-  private startPing() {
+  /** The host that owns the code is the oldest one present. */
+  private host() {
+    return this.sig?.peersWithRole("host")[0] ?? null;
+  }
+
+  private async maybeDial() {
+    if (this.destroyed || this.terminal || this.dialing || this.link?.open) return;
+    const host = this.host();
+    if (!host || !this.sig) return;
+
+    this.dialing = true;
+    try {
+      // `?relay` on the controller URL skips WebRTC — for testing the fallback path.
+      const forceRelay = new URLSearchParams(location.search).has("relay");
+      const link = await dial(this.sig, host.id, { forceRelay });
+      if (this.destroyed) return link.close();
+      this.attach(link);
+    } finally {
+      this.dialing = false;
+    }
+  }
+
+  private attach(link: Link) {
+    this.link = link;
+    this.emit("mode", link.mode);
+    link.on("message", (raw) => this.onMessage(raw));
+    link.on("close", () => {
+      if (this.link !== link) return;
+      this.link = null;
+      if (this.pingTimer) clearInterval(this.pingTimer);
+      if (this.destroyed || this.terminal) return;
+      this.setStatus("reconnecting");
+      const delay = Math.min(500 * 2 ** this.retries++, MAX_RETRY_DELAY_MS);
+      setTimeout(() => this.maybeDial(), delay);
+    });
+    this.send({ t: "hello", v: PROTOCOL_VERSION, clientId: clientId(), name: this.name });
     if (this.pingTimer) clearInterval(this.pingTimer);
     this.pingTimer = setInterval(() => this.send({ t: "ping", at: performance.now() }), PING_INTERVAL_MS);
   }
 
-  private scheduleRetry() {
-    if (this.destroyed || this.terminal) return;
-    const delay = Math.min(500 * 2 ** this.retries++, MAX_RETRY_DELAY_MS);
-    setTimeout(() => this.dial(), delay);
+  private onMessage(raw: unknown) {
+    if (!isHostMessage(raw)) return;
+    switch (raw.t) {
+      case "welcome":
+        this.retries = 0;
+        if (this.notFoundTimer) clearTimeout(this.notFoundTimer);
+        this.setStatus("connected");
+        this.emit("welcome", { player: raw.player, gameId: raw.gameId });
+        break;
+      case "rejected":
+        this.terminal = true;
+        this.setStatus(raw.reason === "full" ? "room-full" : "outdated");
+        break;
+      case "layout":
+        this.emit("layout", { layout: raw.layout, caption: raw.caption });
+        break;
+      case "haptic":
+        navigator.vibrate?.(raw.pattern);
+        break;
+      case "pong":
+        this.emit("rtt", performance.now() - raw.at);
+        break;
+    }
   }
 }

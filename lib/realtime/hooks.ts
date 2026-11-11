@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ControllerClient, type ControllerStatus } from "./controller-client";
 import { HostRoom, type HostStatus } from "./host-room";
+import type { LinkMode } from "./link";
 import type { ControllerLayout, PlayerInfo } from "./protocol";
 
 /** Owns a HostRoom for the lifetime of the component. */
@@ -35,6 +36,7 @@ export function useController(code: string, name: string) {
     layout: { kind: "lobby" },
   });
   const [rtt, setRtt] = useState<number | null>(null);
+  const [mode, setMode] = useState<LinkMode | null>(null);
 
   useEffect(() => {
     const c = new ControllerClient(code, name);
@@ -43,6 +45,7 @@ export function useController(code: string, name: string) {
       c.on("welcome", ({ player }) => setPlayer(player)),
       c.on("layout", setLayout),
       c.on("rtt", setRtt),
+      c.on("mode", setMode),
     ];
     c.start();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- client is an external system created here
@@ -53,5 +56,5 @@ export function useController(code: string, name: string) {
     };
   }, [code, name]);
 
-  return { client, status, player, layout, rtt };
+  return { client, status, player, layout, rtt, mode };
 }
