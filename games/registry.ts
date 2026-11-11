@@ -17,6 +17,17 @@ export const GAMES: GameDefinition[] = [
     load: () => import("./tongue-tied/game"),
   },
   {
+    id: "wobble-run",
+    title: "Wobble Run",
+    tagline: "A candy obstacle course. First to the flag.",
+    description:
+      "Jelly-legged runners on a sugary gauntlet of windmills, thumpers and crumbling biscuit bridges. Best of three heats — dive to shove, bounce to climb, don't look down.",
+    mood: "versus",
+    minutes: "5–10 min",
+    palette: ["#ffd36e", "#ff6fa5"],
+    load: () => import("./wobble-run/game"),
+  },
+  {
     id: "lanterns",
     title: "Lanterns",
     tagline: "Drift through the night. Light the sky together.",
@@ -45,16 +56,6 @@ export const GAMES: GameDefinition[] = [
     mood: "talk",
     minutes: "10–15 min",
     palette: ["#f4b8d4", "#5b5bd6"],
-  },
-  {
-    id: "wobble-run",
-    title: "Wobble Run",
-    tagline: "A wobbly obstacle course. Race — or carry each other.",
-    description:
-      "Jelly-legged runners on a candy-coloured gauntlet of spinners, seesaws and falling floors. Race to the finish, or switch to co-op and get both of you across.",
-    mood: "versus",
-    minutes: "10–20 min",
-    palette: ["#ffd36e", "#ff6fa5"],
   },
   {
     id: "bump",
