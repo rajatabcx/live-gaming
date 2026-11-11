@@ -4,7 +4,7 @@ import type { PeerOptions } from "peerjs";
  * Peer IDs live in a global namespace on the signaling broker, so we prefix them.
  * Bump the version segment if the protocol changes incompatibly.
  */
-const NAMESPACE = "tandem-v1";
+const NAMESPACE = "duet-v1";
 
 export const hostPeerId = (roomCode: string) => `${NAMESPACE}-${roomCode.toLowerCase()}`;
 

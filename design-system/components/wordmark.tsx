@@ -8,7 +8,7 @@ export function Wordmark({ href = "/" }: { href?: string }) {
         <span className="absolute left-0 top-0 h-5 w-5 rounded-full bg-player-one mix-blend-screen transition-transform duration-500 group-hover:-translate-x-0.5" />
         <span className="absolute right-0 top-0 h-5 w-5 rounded-full bg-player-two mix-blend-screen transition-transform duration-500 group-hover:translate-x-0.5" />
       </span>
-      <span className="font-display text-2xl leading-none tracking-tight text-fg-primary">Tandem</span>
+      <span className="font-display text-2xl leading-none tracking-tight text-fg-primary">Duet</span>
     </Link>
   );
 }

@@ -6,7 +6,7 @@ import type { ControllerStatus } from "@/lib/realtime/controller-client";
 import { Button, Field, Input, PLAYER_COLORS, Text, palette } from "@/design-system";
 import { Gamepad } from "./gamepad";
 
-const NAME_KEY = "tandem.name";
+const NAME_KEY = "duet.name";
 
 const STATUS_COPY: Partial<Record<ControllerStatus, { title: string; body: string }>> = {
   connecting: { title: "Finding the room…", body: "Keep this phone near the screen." },

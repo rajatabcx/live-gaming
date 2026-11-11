@@ -1,5 +1,5 @@
 /**
- * Tandem design system — the only place UI primitives come from.
+ * Duet design system — the only place UI primitives come from.
  * Figma source: https://www.figma.com/design/ADSyRYkzjDSAqSlKyV2zvw
  * Built on Radix primitives (behaviour/a11y) + our own tokens (look).
  */

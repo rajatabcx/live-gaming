@@ -16,7 +16,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Product bar: modern, minimal, premium aesthetic ("premium couples"). It gets posted on social, so every screen must look finished.
 - Make taste/UX calls on your own when you're confident they're better; ask the owner only when genuinely torn between options.
 - Owner prefers short bullet-point answers.
-- **UI comes only from `@/design-system`** (Radix primitives + our tokens, no shadcn). Figma file "Tandem — Design System" is the source of truth; names map 1:1 to code. See `design-system/README.md` before touching styles.
+- **UI comes only from `@/design-system`** (Radix primitives + our tokens, no shadcn). Figma file "Duet — Design System" is the source of truth; names map 1:1 to code. See `design-system/README.md` before touching styles.
 
 ## Architecture (high level)
 

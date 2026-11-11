@@ -21,8 +21,8 @@ const instrumentSerif = Instrument_Serif({
 
 export const metadata: Metadata = {
   title: {
-    default: "Tandem — games for two",
-    template: "%s · Tandem",
+    default: "Duet — games for two",
+    template: "%s · Duet",
   },
   description:
     "Quiet, beautiful games made for two. One screen, two phones, no installs.",

@@ -25,7 +25,7 @@ type ControllerEvents = {
   rtt: number;
 };
 
-const CLIENT_ID_KEY = "tandem.clientId";
+const CLIENT_ID_KEY = "duet.clientId";
 const PING_INTERVAL_MS = 2000;
 const MAX_RETRY_DELAY_MS = 5000;
 

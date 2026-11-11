@@ -80,7 +80,7 @@ export default function Home() {
 
       <footer className="relative z-10 mx-auto flex w-full max-w-6xl items-center justify-between border-t border-line-subtle px-6 py-8 text-sm text-fg-tertiary">
         <span>Made for two.</span>
-        <Text as="span" variant="mono-s">tandem</Text>
+        <Text as="span" variant="mono-s">duet</Text>
       </footer>
     </main>
   );

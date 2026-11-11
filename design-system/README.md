@@ -1,4 +1,4 @@
-# Tandem design system
+# Duet design system
 
 **Figma (source of truth):** https://www.figma.com/design/ADSyRYkzjDSAqSlKyV2zvw
 
