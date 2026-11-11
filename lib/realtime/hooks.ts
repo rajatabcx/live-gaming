@@ -16,7 +16,8 @@ export function useHostRoom(code: string) {
 
   useEffect(() => {
     const r = new HostRoom(code);
-    const offs = [r.on("status", setStatus), r.on("players", setPlayers), r.on("layout", setLayout)];
+    // The host screen's own player (if any) plays on the keyboard: track their layout.
+    const offs = [r.on("status", setStatus), r.on("players", setPlayers), r.on("layout", () => setLayout(r.localLayout))];
     r.start();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- room is an external system created here
     setRoom(r);

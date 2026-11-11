@@ -9,6 +9,7 @@ import {
   type ControllerLayout,
   type HostMessage,
   type InputState,
+  type PlayerDevice,
   type PlayerInfo,
   type PlayerSlot,
 } from "./protocol";
@@ -22,7 +23,8 @@ type HostEvents = {
   players: PlayerInfo[];
   press: { playerId: string; button: Button };
   release: { playerId: string; button: Button };
-  layout: { layout: ControllerLayout; caption?: string };
+  /** Some player's layout changed (null: everyone's). */
+  layout: { playerId: string | null };
 };
 
 interface Seat {
@@ -30,11 +32,9 @@ interface Seat {
   conn: Link | null;
   input: InputState;
   lastSeq: number;
-  /** A remote screen holds this seat: it gets the lobby and game frames too. */
-  screen: boolean;
-  /** Played on the host's own keyboard/gamepad; no link at all. */
-  local: boolean;
 }
+
+type LayoutMsg = { layout: ControllerLayout; caption?: string };
 
 const MAX_PLAYERS = 2;
 const LOCAL_ID = "local";
@@ -61,7 +61,9 @@ export class HostRoom extends Emitter<HostEvents> {
   /** Screens that joined a full room: they watch, they don't play. Keyed by clientId. */
   private spectators = new Map<string, Link>();
   readonly screens = new ScreenHub(() => this.screenLinks());
-  private layout: { layout: ControllerLayout; caption?: string } = { layout: { kind: "lobby" } };
+  private layout: LayoutMsg = { layout: { kind: "lobby" } };
+  /** Per-player overrides, for games where the two players have different jobs. */
+  private layouts = new Map<string, LayoutMsg>();
   private gameId: string | null = null;
   private destroyed = false;
   private takenTimer: ReturnType<typeof setTimeout> | null = null;
@@ -128,9 +130,7 @@ export class HostRoom extends Emitter<HostEvents> {
     if (existing) {
       existing.info = { ...existing.info, name };
     } else {
-      const seat = this.claimSeat(LOCAL_ID, name, null);
-      if (!seat) return null;
-      seat.local = true;
+      if (!this.claimSeat(LOCAL_ID, name, null, "local")) return null;
     }
     this.emitPlayers();
     return this.seats.get(LOCAL_ID)!.info;
@@ -153,15 +153,28 @@ export class HostRoom extends Emitter<HostEvents> {
     return this.seats.get(LOCAL_ID)?.info ?? null;
   }
 
-  /** Change what every phone shows. Remembered and re-sent to late joiners. */
+  /** Change what every phone shows. Remembered and re-sent to late joiners. Clears per-player layouts. */
   setLayout(layout: ControllerLayout, caption?: string): void {
     this.layout = { layout, caption };
+    this.layouts.clear();
     this.broadcast({ t: "layout", ...this.layout });
-    this.emit("layout", this.layout);
+    this.emit("layout", { playerId: null });
   }
 
-  get currentLayout() {
-    return this.layout;
+  /** Change what one player's controller shows. */
+  setLayoutFor(playerId: string, layout: ControllerLayout, caption?: string): void {
+    const msg = { layout, caption };
+    this.layouts.set(playerId, msg);
+    this.send(playerId, { t: "layout", ...msg });
+    this.emit("layout", { playerId });
+  }
+
+  layoutFor(playerId: string): LayoutMsg {
+    return this.layouts.get(playerId) ?? this.layout;
+  }
+
+  get localLayout(): LayoutMsg {
+    return this.layoutFor(LOCAL_ID);
   }
 
   haptic(playerId: string, pattern: number | number[]): void {
@@ -211,7 +224,7 @@ export class HostRoom extends Emitter<HostEvents> {
 
   private screenLinks(): Link[] {
     const links: Link[] = [...this.spectators.values()];
-    for (const seat of this.seats.values()) if (seat.screen && seat.conn) links.push(seat.conn);
+    for (const seat of this.seats.values()) if (seat.info.device === "screen" && seat.conn) links.push(seat.conn);
     return links.filter((l) => l.open);
   }
 
@@ -257,7 +270,7 @@ export class HostRoom extends Emitter<HostEvents> {
           return;
         }
         conn.send({ t: "welcome", player: seat.info, gameId: this.gameId } satisfies HostMessage);
-        conn.send({ t: "layout", ...this.layout } satisfies HostMessage);
+        conn.send({ t: "layout", ...this.layoutFor(seat.info.id) } satisfies HostMessage);
         this.emitPlayers();
         if (screen) this.greetScreen(conn);
         return;
@@ -268,7 +281,7 @@ export class HostRoom extends Emitter<HostEvents> {
         return;
       }
       if (msg.t === "command") {
-        if (seat?.screen || spectating) this.screens.command({ playerId: seat?.info.id ?? null, name: msg.name });
+        if (seat?.info.device === "screen" || spectating) this.screens.command({ playerId: seat?.info.id ?? null, name: msg.name });
         return;
       }
 
@@ -289,21 +302,19 @@ export class HostRoom extends Emitter<HostEvents> {
 
   /** Find or assign a seat. Returning players reclaim theirs. */
   private seat(clientId: string, name: string, conn: Link, screen: boolean): Seat | null {
+    const device: PlayerDevice = screen ? "screen" : "phone";
     const existing = this.seats.get(clientId);
     if (existing) {
       existing.conn?.close();
       existing.conn = conn;
-      existing.info = { ...existing.info, name, connected: true };
+      existing.info = { ...existing.info, name, connected: true, device };
       existing.lastSeq = 0;
-      existing.screen = screen;
       return existing;
     }
-    const seat = this.claimSeat(clientId, name, conn);
-    if (seat) seat.screen = screen;
-    return seat;
+    return this.claimSeat(clientId, name, conn, device);
   }
 
-  private claimSeat(clientId: string, name: string, conn: Link | null): Seat | null {
+  private claimSeat(clientId: string, name: string, conn: Link | null, device: PlayerDevice): Seat | null {
     const taken = new Set([...this.seats.values()].map((s) => s.info.slot));
     let slot = SLOTS.find((s) => !taken.has(s));
 
@@ -317,12 +328,10 @@ export class HostRoom extends Emitter<HostEvents> {
     if (slot === undefined) return null;
 
     const seat: Seat = {
-      info: { id: clientId, slot, name, connected: true },
+      info: { id: clientId, slot, name, connected: true, device },
       conn,
       input: NEUTRAL_INPUT,
       lastSeq: 0,
-      screen: false,
-      local: false,
     };
     this.seats.set(clientId, seat);
     return seat;

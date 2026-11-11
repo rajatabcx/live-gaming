@@ -83,6 +83,8 @@ export class ControllerClient extends Emitter<ControllerEvents> {
   status: ControllerStatus = "connecting";
   /** Last HUD state the host sent (screens). */
   lastState: unknown = undefined;
+  /** Our seat, once welcomed (null: watching a full room). */
+  self: PlayerInfo | null = null;
 
   constructor(
     readonly code: string,
@@ -208,6 +210,7 @@ export class ControllerClient extends Emitter<ControllerEvents> {
       case "welcome":
         this.retries = 0;
         if (this.notFoundTimer) clearTimeout(this.notFoundTimer);
+        this.self = raw.player;
         this.setStatus("connected");
         this.emit("welcome", { player: raw.player, gameId: raw.gameId });
         break;

@@ -21,11 +21,15 @@ export const NEUTRAL_INPUT: InputState = { x: 0, y: 0, a: false, b: false };
 
 export type PlayerSlot = 0 | 1;
 
+/** What a player is holding: a phone (looks at the host screen), their own remote screen, or the host's keyboard. */
+export type PlayerDevice = "phone" | "screen" | "local";
+
 export interface PlayerInfo {
   id: string;
   slot: PlayerSlot;
   name: string;
   connected: boolean;
+  device: PlayerDevice;
 }
 
 /** What the phone should show. Games pick a layout; the controller renders it. */

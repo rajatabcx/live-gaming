@@ -17,8 +17,8 @@ export const KEYBOARD_BINDINGS: Record<PlayerSlot, Binding> = {
 };
 
 export const KEYBOARD_PLAYERS: PlayerInfo[] = [
-  { id: "kbd-0", slot: 0, name: "Left", connected: true },
-  { id: "kbd-1", slot: 1, name: "Right", connected: true },
+  { id: "kbd-0", slot: 0, name: "Left", connected: true, device: "local" },
+  { id: "kbd-1", slot: 1, name: "Right", connected: true, device: "local" },
 ];
 
 const SLOTS: PlayerSlot[] = [0, 1];
@@ -86,6 +86,8 @@ export class KeyboardRoom implements GameRoom {
   setLayout(layout: ControllerLayout, caption?: string): void {
     this.layout = { layout, caption };
   }
+
+  setLayoutFor(): void {}
 
   haptic(): void {}
 

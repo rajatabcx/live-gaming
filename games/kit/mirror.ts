@@ -192,6 +192,7 @@ export const INERT_ROOM: GameRoom = {
   inputForSlot: () => ({ x: 0, y: 0, a: false, b: false }),
   on: () => () => {},
   setLayout() {},
+  setLayoutFor() {},
   haptic() {},
   screens: { watching: false, frame() {}, state() {}, on: () => () => {} },
 };

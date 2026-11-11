@@ -40,6 +40,8 @@ export interface ScreenFeed {
   on<K extends keyof ScreenFeedEvents>(event: K, fn: (payload: ScreenFeedEvents[K]) => void): () => void;
   /** Last HUD state received, so a game that mounts late starts from it. */
   readonly lastState: unknown;
+  /** Who this screen plays as — null when it only watches. */
+  readonly self: PlayerInfo | null;
   /** Ask the host to run a HUD command. */
   command(name: string): void;
 }
@@ -55,6 +57,8 @@ export interface GameRoom {
   on(event: "press" | "release", fn: (edge: ButtonEdge) => void): () => void;
   /** What the phones should show. Remembered and re-sent to late joiners. */
   setLayout(layout: ControllerLayout, caption?: string): void;
+  /** One player's controller only — for games where the two have different jobs. */
+  setLayoutFor(playerId: string, layout: ControllerLayout, caption?: string): void;
   haptic(playerId: string, pattern: number | number[]): void;
   /** Remote screens watching this room. */
   readonly screens: ScreenChannel;
