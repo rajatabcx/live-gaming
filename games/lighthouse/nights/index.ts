@@ -1,0 +1,140 @@
+import type { NightData } from "../sim/night";
+
+// The lighthouse stands on the headland at the bottom of the chart; every
+// route stays inside the beam's reach (BEAM.length). Routes are checked by
+// `pnpm playtest` — keep ≥ 50px between a route segment and any rock edge.
+
+const LIGHTHOUSE = { x: 1000, y: 1150 };
+/** The headland under the lighthouse. Solid like any rock. */
+const HEADLAND = { x: 1000, y: 1340, r: 230 };
+
+export const NIGHTS: NightData[] = [
+  {
+    name: "Still Water",
+    subtitle: "A calm night to learn the light",
+    hint: "Keeper: sweep the beam ahead of the boat. Sailor: say what you see.",
+    lighthouse: LIGHTHOUSE,
+    spawn: { x: 180, y: 300, heading: 0 },
+    harbor: { x: 1820, y: 320, r: 85 },
+    rocks: [
+      HEADLAND,
+      { x: 700, y: 260, r: 60 },
+      { x: 760, y: 360, r: 45 },
+      { x: 640, y: 380, r: 40 },
+      { x: 1100, y: 250, r: 55 },
+      { x: 1180, y: 170, r: 40 },
+      { x: 1260, y: 330, r: 50 },
+      { x: 1020, y: 610, r: 60 },
+      { x: 380, y: 140, r: 45 },
+      { x: 1560, y: 560, r: 50 },
+    ],
+    buoys: [{ x: 950, y: 465 }],
+    bottles: [
+      { x: 560, y: 530 },
+      { x: 1450, y: 220 },
+    ],
+    currents: [],
+    lantern: 120,
+    route: [
+      { x: 520, y: 480 },
+      { x: 900, y: 470 },
+      { x: 1150, y: 450 },
+      { x: 1400, y: 430 },
+      { x: 1600, y: 330 },
+      { x: 1820, y: 320 },
+    ],
+  },
+  {
+    name: "The Narrows",
+    subtitle: "One gap in the rocks, and the tide pulls",
+    hint: "The tide in the narrows drags you south. Keeper: light the gap.",
+    lighthouse: LIGHTHOUSE,
+    spawn: { x: 170, y: 950, heading: -Math.PI / 2 },
+    harbor: { x: 1830, y: 900, r: 85 },
+    rocks: [
+      HEADLAND,
+      // The reef wall — the only way through is the narrows at the top.
+      { x: 1000, y: 90, r: 80 },
+      { x: 1000, y: 520, r: 70 },
+      { x: 980, y: 650, r: 70 },
+      { x: 1010, y: 780, r: 70 },
+      { x: 990, y: 910, r: 70 },
+      { x: 420, y: 720, r: 55 },
+      { x: 560, y: 560, r: 45 },
+      { x: 300, y: 380, r: 40 },
+      { x: 640, y: 200, r: 45 },
+      { x: 1350, y: 450, r: 60 },
+      { x: 1450, y: 650, r: 50 },
+      { x: 1300, y: 820, r: 45 },
+      { x: 1600, y: 560, r: 40 },
+      { x: 1750, y: 650, r: 45 },
+    ],
+    buoys: [
+      { x: 420, y: 420 },
+      { x: 1200, y: 320 },
+      { x: 1880, y: 600 },
+    ],
+    bottles: [
+      { x: 170, y: 700 },
+      { x: 880, y: 250 },
+      { x: 1500, y: 330 },
+    ],
+    currents: [{ x: 880, y: 150, w: 240, h: 300, vx: 0, vy: 55 }],
+    lantern: 105,
+    route: [
+      { x: 170, y: 600 },
+      { x: 420, y: 420 },
+      { x: 760, y: 300 },
+      { x: 1000, y: 300 },
+      { x: 1200, y: 320 },
+      { x: 1400, y: 330 },
+      { x: 1650, y: 420 },
+      { x: 1880, y: 600 },
+      { x: 1830, y: 900 },
+    ],
+  },
+  {
+    name: "Long Way Home",
+    subtitle: "Thick fog, a crosswind, and home on the far side",
+    hint: "Fog's thick tonight. Use the flare to show a wide stretch at once.",
+    lighthouse: LIGHTHOUSE,
+    spawn: { x: 1500, y: 1000, heading: -Math.PI / 2 },
+    harbor: { x: 220, y: 220, r: 85 },
+    rocks: [
+      HEADLAND,
+      { x: 1000, y: 520, r: 190 },
+      { x: 1600, y: 700, r: 50 },
+      { x: 1350, y: 800, r: 45 },
+      { x: 1250, y: 350, r: 55 },
+      { x: 1500, y: 200, r: 45 },
+      { x: 720, y: 330, r: 50 },
+      { x: 560, y: 450, r: 60 },
+      { x: 380, y: 600, r: 45 },
+      { x: 300, y: 380, r: 40 },
+      { x: 800, y: 800, r: 55 },
+      { x: 650, y: 960, r: 50 },
+      { x: 1820, y: 300, r: 50 },
+    ],
+    buoys: [
+      { x: 1700, y: 500 },
+      { x: 1150, y: 180 },
+      { x: 560, y: 260 },
+    ],
+    bottles: [
+      { x: 1720, y: 960 },
+      { x: 1000, y: 240 },
+      { x: 400, y: 150 },
+    ],
+    currents: [{ x: 300, y: 90, w: 1400, h: 220, vx: 45, vy: 0 }],
+    lantern: 90,
+    route: [
+      { x: 1650, y: 850 },
+      { x: 1700, y: 500 },
+      { x: 1450, y: 330 },
+      { x: 1150, y: 180 },
+      { x: 850, y: 140 },
+      { x: 560, y: 260 },
+      { x: 220, y: 220 },
+    ],
+  },
+];
