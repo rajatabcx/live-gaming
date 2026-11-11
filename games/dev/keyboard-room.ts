@@ -1,5 +1,5 @@
 import type { ControllerLayout, InputState, PlayerInfo, PlayerSlot } from "@/lib/realtime/protocol";
-import type { ButtonEdge, GameButton, GameRoom } from "../types";
+import type { ButtonEdge, GameButton, GameRoom, ScreenChannel } from "../types";
 
 interface Binding {
   left: string;
@@ -22,6 +22,9 @@ export const KEYBOARD_PLAYERS: PlayerInfo[] = [
 ];
 
 const SLOTS: PlayerSlot[] = [0, 1];
+
+/** Nobody watches a keyboard room remotely. */
+const NO_SCREENS: ScreenChannel = { watching: false, frame() {}, state() {}, on: () => () => {} };
 const BUTTONS: GameButton[] = ["a", "b"];
 
 /**
@@ -37,6 +40,7 @@ export class KeyboardRoom implements GameRoom {
   };
   private listeners = { press: new Set<(e: ButtonEdge) => void>(), release: new Set<(e: ButtonEdge) => void>() };
   layout: { layout: ControllerLayout; caption?: string } = { layout: { kind: "lobby" } };
+  readonly screens = NO_SCREENS;
 
   attach(target: Window): () => void {
     const down = (e: KeyboardEvent) => {

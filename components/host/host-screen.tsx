@@ -56,7 +56,7 @@ export function HostScreen({ code }: { code: string }) {
     if (status === "code-taken") router.replace(`/room/${createRoomCode()}`);
   }, [status, router]);
 
-  if (Game && room) return <Game room={room} players={players} onExit={exit} />;
+  if (Game && room) return <Game role="host" room={room} players={players} onExit={exit} />;
 
   if (status === "code-taken") {
     return (

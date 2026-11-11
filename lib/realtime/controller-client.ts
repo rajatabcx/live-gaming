@@ -21,11 +21,21 @@ export type ControllerStatus =
 
 type ControllerEvents = {
   status: ControllerStatus;
-  welcome: { player: PlayerInfo; gameId: string | null };
+  /** `player` is null when a screen joined a full room as an audience. */
+  welcome: { player: PlayerInfo | null; gameId: string | null };
   layout: { layout: ControllerLayout; caption?: string };
   rtt: number;
   mode: LinkMode;
+  // Screens only ↓
+  lobby: { players: PlayerInfo[]; gameId: string | null };
+  frame: unknown;
+  state: unknown;
 };
+
+export interface ControllerOptions {
+  /** Join as a remote screen: receive the lobby and a mirror of the game. */
+  screen?: boolean;
+}
 
 const CLIENT_ID_KEY = "duet.clientId";
 const PING_INTERVAL_MS = 2000;
@@ -49,8 +59,10 @@ function clientId(): string {
 }
 
 /**
- * The phone side of a room. Finds the host via Supabase presence, opens a
- * link (WebRTC, or relay fallback), then sends input and receives layout/haptics.
+ * The joining side of a room — a phone, or a partner's laptop far away
+ * (`screen: true`), which also gets the lobby and a live mirror of the game
+ * and satisfies the games' `ScreenFeed`. Finds the host via Supabase presence,
+ * opens a link (WebRTC, or relay fallback), then sends input and receives layout/haptics.
  * Input is coalesced to one send per animation frame and sent as whole
  * snapshots with a sequence number, so the host can drop stale ones.
  */
@@ -69,12 +81,20 @@ export class ControllerClient extends Emitter<ControllerEvents> {
   private destroyed = false;
   private terminal = false;
   status: ControllerStatus = "connecting";
+  /** Last HUD state the host sent (screens). */
+  lastState: unknown = undefined;
 
   constructor(
     readonly code: string,
     private name: string,
+    private options: ControllerOptions = {},
   ) {
     super();
+  }
+
+  /** A remote screen's HUD button. */
+  command(name: string): void {
+    this.send({ t: "command", name });
   }
 
   start(): void {
@@ -177,7 +197,7 @@ export class ControllerClient extends Emitter<ControllerEvents> {
       const delay = Math.min(500 * 2 ** this.retries++, MAX_RETRY_DELAY_MS);
       setTimeout(() => this.maybeDial(), delay);
     });
-    this.send({ t: "hello", v: PROTOCOL_VERSION, clientId: clientId(), name: this.name });
+    this.send({ t: "hello", v: PROTOCOL_VERSION, clientId: clientId(), name: this.name, screen: this.options.screen });
     if (this.pingTimer) clearInterval(this.pingTimer);
     this.pingTimer = setInterval(() => this.send({ t: "ping", at: performance.now() }), PING_INTERVAL_MS);
   }
@@ -203,6 +223,17 @@ export class ControllerClient extends Emitter<ControllerEvents> {
         break;
       case "pong":
         this.emit("rtt", performance.now() - raw.at);
+        break;
+      case "lobby":
+        if (raw.gameId === null) this.lastState = undefined;
+        this.emit("lobby", { players: raw.players, gameId: raw.gameId });
+        break;
+      case "frame":
+        this.emit("frame", raw.f);
+        break;
+      case "state":
+        this.lastState = raw.s;
+        this.emit("state", raw.s);
         break;
     }
   }

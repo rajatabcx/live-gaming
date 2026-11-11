@@ -29,7 +29,7 @@ export function DevGame({ id }: { id: string }) {
   if (!Game) return <main className="min-h-dvh" />;
   return (
     <>
-      <Game room={room} players={KEYBOARD_PLAYERS} onExit={() => router.push("/")} />
+      <Game role="host" room={room} players={KEYBOARD_PLAYERS} onExit={() => router.push("/")} />
       <div className="pointer-events-none fixed bottom-6 left-6 z-10 hidden flex-col gap-1 lg:flex">
         <Text variant="mono-s">Left · WASD move · Space A · E B</Text>
         <Text variant="mono-s">Right · IJKL move · U A · O B</Text>

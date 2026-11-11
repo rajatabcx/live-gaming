@@ -16,6 +16,8 @@ export abstract class Link extends Emitter<LinkEvents> {
   abstract readonly mode: LinkMode;
   abstract readonly open: boolean;
   abstract send(msg: unknown): void;
+  /** Fire-and-forget: may drop or reorder. For latest-wins streams like game frames. */
+  abstract sendLossy(msg: unknown): void;
   protected closed = false;
 
   constructor(readonly peerId: string) {
@@ -42,9 +44,14 @@ const ICE_SERVERS: RTCIceServer[] = [
 /** A blip on Wi-Fi often recovers; only give up after this long "disconnected". */
 const DISCONNECT_GRACE_MS = 4000;
 
+const RELIABLE = "duet";
+const LOSSY = "duet-frames";
+
 export class PeerLink extends Link {
   readonly mode = "p2p" as const;
   private dc: RTCDataChannel | null = null;
+  /** Unordered, no retransmits — a late frame is worse than a missing one. */
+  private lossy: RTCDataChannel | null = null;
   private graceTimer: ReturnType<typeof setTimeout> | null = null;
   private offSignal: () => void;
   private pendingIce: RTCIceCandidateInit[] = [];
@@ -80,6 +87,12 @@ export class PeerLink extends Link {
     if (this.open) this.dc!.send(JSON.stringify(msg));
   }
 
+  sendLossy(msg: unknown) {
+    const ch = this.lossy?.readyState === "open" ? this.lossy : this.dc;
+    // Don't let a slow link queue frames up: skip this one if the buffer is backing up.
+    if (ch?.readyState === "open" && ch.bufferedAmount < 64 * 1024) ch.send(JSON.stringify(msg));
+  }
+
   /** Resolves once the data channel is open. */
   ready(): Promise<void> {
     if (this.open) return Promise.resolve();
@@ -88,7 +101,8 @@ export class PeerLink extends Link {
 
   // ── Offerer (controller) ──
   async offer(): Promise<void> {
-    this.attach(this.pc.createDataChannel("duet", { ordered: true }));
+    this.attach(this.pc.createDataChannel(RELIABLE, { ordered: true }));
+    this.attach(this.pc.createDataChannel(LOSSY, { ordered: false, maxRetransmits: 0 }));
     await this.pc.setLocalDescription(await this.pc.createOffer());
     this.sig.send({ kind: "offer", from: this.sig.selfId, to: this.peerId, sdp: this.pc.localDescription!.sdp });
   }
@@ -105,13 +119,17 @@ export class PeerLink extends Link {
     if (this.graceTimer) clearTimeout(this.graceTimer);
     this.offSignal();
     this.dc?.close();
+    this.lossy?.close();
     this.pc.close();
   }
 
   private attach(dc: RTCDataChannel) {
-    this.dc = dc;
-    dc.onopen = () => this.onReady?.();
-    dc.onclose = () => this.close();
+    if (dc.label === LOSSY) this.lossy = dc;
+    else {
+      this.dc = dc;
+      dc.onopen = () => this.onReady?.();
+      dc.onclose = () => this.close();
+    }
     dc.onmessage = (e) => {
       try {
         this.deliver(JSON.parse(e.data as string));
@@ -162,6 +180,10 @@ export class RelayLink extends Link {
 
   send(msg: unknown) {
     if (!this.closed) this.sig.send({ kind: "relay", from: this.sig.selfId, to: this.peerId, data: msg });
+  }
+
+  sendLossy(msg: unknown) {
+    this.send(msg);
   }
 
   /** Feed the first relay message that caused this link to be created. */

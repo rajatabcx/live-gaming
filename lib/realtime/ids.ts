@@ -4,5 +4,5 @@ export function randomId(bytes = 16): string {
 }
 
 /** Bump when the wire protocol changes incompatibly — old and new clients land in different topics. */
-const NAMESPACE = "duet-v2";
+const NAMESPACE = "duet-v3";
 export const roomTopic = (code: string) => `${NAMESPACE}:room:${code.toLowerCase()}`;

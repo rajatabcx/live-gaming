@@ -1,3 +1,4 @@
+import type { ScreenChannel, ScreenCommand } from "@/games/types";
 import { Emitter } from "./emitter";
 import { randomId } from "./ids";
 import { LinkAcceptor, type Link } from "./link";
@@ -28,9 +29,16 @@ interface Seat {
   conn: Link | null;
   input: InputState;
   lastSeq: number;
+  /** A remote screen holds this seat: it gets the lobby and game frames too. */
+  screen: boolean;
+  /** Played on the host's own keyboard/gamepad; no link at all. */
+  local: boolean;
 }
 
 const MAX_PLAYERS = 2;
+const LOCAL_ID = "local";
+/** Supabase broadcast has per-second limits; WebRTC gets every frame. */
+const RELAY_FRAME_INTERVAL_MS = 100;
 /** After a reload the old tab's presence can linger briefly; only an older host that sticks around wins. */
 const TAKEN_GRACE_MS = 3000;
 const SLOTS: PlayerSlot[] = [0, 1];
@@ -49,6 +57,9 @@ export class HostRoom extends Emitter<HostEvents> {
   private sig: Signaling | null = null;
   private acceptor: LinkAcceptor | null = null;
   private seats = new Map<string, Seat>();
+  /** Screens that joined a full room: they watch, they don't play. Keyed by clientId. */
+  private spectators = new Map<string, Link>();
+  readonly screens = new ScreenHub(() => this.screenLinks());
   private layout: { layout: ControllerLayout; caption?: string } = { layout: { kind: "lobby" } };
   private gameId: string | null = null;
   private destroyed = false;
@@ -106,6 +117,39 @@ export class HostRoom extends Emitter<HostEvents> {
 
   setGame(gameId: string | null): void {
     this.gameId = gameId;
+    this.screens.reset();
+    this.sendLobby();
+  }
+
+  /** Seat a player on this machine (long-distance: the host plays too). */
+  joinLocal(name: string): PlayerInfo | null {
+    const existing = this.seats.get(LOCAL_ID);
+    if (existing) {
+      existing.info = { ...existing.info, name };
+    } else {
+      const seat = this.claimSeat(LOCAL_ID, name, null);
+      if (!seat) return null;
+      seat.local = true;
+    }
+    this.emitPlayers();
+    return this.seats.get(LOCAL_ID)!.info;
+  }
+
+  leaveLocal(): void {
+    const seat = this.seats.get(LOCAL_ID);
+    if (!seat) return;
+    this.applyInput(seat, NEUTRAL_INPUT);
+    this.seats.delete(LOCAL_ID);
+    this.emitPlayers();
+  }
+
+  setLocalInput(state: InputState): void {
+    const seat = this.seats.get(LOCAL_ID);
+    if (seat) this.applyInput(seat, state);
+  }
+
+  get localPlayer(): PlayerInfo | null {
+    return this.seats.get(LOCAL_ID)?.info ?? null;
   }
 
   /** Change what every phone shows. Remembered and re-sent to late joiners. */
@@ -135,10 +179,13 @@ export class HostRoom extends Emitter<HostEvents> {
   destroy(): void {
     this.destroyed = true;
     if (this.takenTimer) clearTimeout(this.takenTimer);
-    for (const seat of this.seats.values()) {
-      if (seat.conn) this.sig?.send({ kind: "bye", from: this.selfId, to: seat.conn.peerId });
-      seat.conn?.close();
+    const links = [...[...this.seats.values()].map((s) => s.conn), ...this.spectators.values()];
+    for (const conn of links) {
+      if (!conn) continue;
+      this.sig?.send({ kind: "bye", from: this.selfId, to: conn.peerId });
+      conn.close();
     }
+    this.screens.dispose();
     this.acceptor?.dispose();
     this.sig?.leave();
     this.clearListeners();
@@ -153,10 +200,30 @@ export class HostRoom extends Emitter<HostEvents> {
 
   private emitPlayers() {
     this.emit("players", this.players);
+    this.sendLobby();
+  }
+
+  private screenLinks(): Link[] {
+    const links: Link[] = [...this.spectators.values()];
+    for (const seat of this.seats.values()) if (seat.screen && seat.conn) links.push(seat.conn);
+    return links.filter((l) => l.open);
+  }
+
+  private sendLobby() {
+    const msg: HostMessage = { t: "lobby", players: this.players, gameId: this.gameId };
+    for (const link of this.screenLinks()) link.send(msg);
+  }
+
+  /** Everything a screen needs to catch up: who's here, what's running, the HUD. */
+  private greetScreen(conn: Link) {
+    conn.send({ t: "lobby", players: this.players, gameId: this.gameId } satisfies HostMessage);
+    const state = this.screens.lastState;
+    if (state !== undefined) conn.send({ t: "state", s: state } satisfies HostMessage);
   }
 
   private accept(conn: Link) {
     let seat: Seat | null = null;
+    let spectating: string | null = null;
 
     conn.on("message", (raw) => {
       if (!isControllerMessage(raw)) return;
@@ -167,7 +234,17 @@ export class HostRoom extends Emitter<HostEvents> {
           conn.send({ t: "rejected", reason: "version" } satisfies HostMessage);
           return;
         }
-        seat = this.seat(msg.clientId, msg.name, conn);
+        const screen = msg.screen === true;
+        seat = this.seat(msg.clientId, msg.name, conn, screen);
+        if (!seat && screen) {
+          // A full room still has room for an audience.
+          this.spectators.get(msg.clientId)?.close();
+          this.spectators.set(msg.clientId, conn);
+          spectating = msg.clientId;
+          conn.send({ t: "welcome", player: null, gameId: this.gameId } satisfies HostMessage);
+          this.greetScreen(conn);
+          return;
+        }
         if (!seat) {
           conn.send({ t: "rejected", reason: "full" } satisfies HostMessage);
           setTimeout(() => conn.close(), 250);
@@ -176,6 +253,16 @@ export class HostRoom extends Emitter<HostEvents> {
         conn.send({ t: "welcome", player: seat.info, gameId: this.gameId } satisfies HostMessage);
         conn.send({ t: "layout", ...this.layout } satisfies HostMessage);
         this.emitPlayers();
+        if (screen) this.greetScreen(conn);
+        return;
+      }
+
+      if (msg.t === "ping") {
+        conn.send({ t: "pong", at: msg.at } satisfies HostMessage);
+        return;
+      }
+      if (msg.t === "command") {
+        if (seat?.screen || spectating) this.screens.command({ playerId: seat?.info.id ?? null, name: msg.name });
         return;
       }
 
@@ -185,25 +272,32 @@ export class HostRoom extends Emitter<HostEvents> {
         if (msg.seq <= seat.lastSeq) return; // stale / out-of-order
         seat.lastSeq = msg.seq;
         this.applyInput(seat, msg.s);
-      } else if (msg.t === "ping") {
-        conn.send({ t: "pong", at: msg.at } satisfies HostMessage);
       }
     });
 
-    conn.on("close", () => this.release(seat, conn));
+    conn.on("close", () => {
+      if (spectating && this.spectators.get(spectating) === conn) this.spectators.delete(spectating);
+      this.release(seat, conn);
+    });
   }
 
   /** Find or assign a seat. Returning players reclaim theirs. */
-  private seat(clientId: string, name: string, conn: Link): Seat | null {
+  private seat(clientId: string, name: string, conn: Link, screen: boolean): Seat | null {
     const existing = this.seats.get(clientId);
     if (existing) {
       existing.conn?.close();
       existing.conn = conn;
       existing.info = { ...existing.info, name, connected: true };
       existing.lastSeq = 0;
+      existing.screen = screen;
       return existing;
     }
+    const seat = this.claimSeat(clientId, name, conn);
+    if (seat) seat.screen = screen;
+    return seat;
+  }
 
+  private claimSeat(clientId: string, name: string, conn: Link | null): Seat | null {
     const taken = new Set([...this.seats.values()].map((s) => s.info.slot));
     let slot = SLOTS.find((s) => !taken.has(s));
 
@@ -221,6 +315,8 @@ export class HostRoom extends Emitter<HostEvents> {
       conn,
       input: NEUTRAL_INPUT,
       lastSeq: 0,
+      screen: false,
+      local: false,
     };
     this.seats.set(clientId, seat);
     return seat;
@@ -241,5 +337,57 @@ export class HostRoom extends Emitter<HostEvents> {
       if (next[button] && !prev[button]) this.emit("press", { playerId: seat.info.id, button });
       if (!next[button] && prev[button]) this.emit("release", { playerId: seat.info.id, button });
     }
+  }
+}
+
+/**
+ * Fan-out to remote screens. Frames go lossy and are thinned per link when it
+ * runs over the relay; HUD state goes reliable and is kept for late joiners.
+ */
+class ScreenHub extends Emitter<{ command: ScreenCommand }> implements ScreenChannel {
+  private remembered: { value: unknown } | null = null;
+  private lastFrameAt = new WeakMap<Link, number>();
+
+  constructor(private links: () => Link[]) {
+    super();
+  }
+
+  get watching() {
+    return this.links().length > 0;
+  }
+
+  get lastState(): unknown {
+    return this.remembered?.value;
+  }
+
+  frame(f: unknown): void {
+    const now = performance.now();
+    const msg: HostMessage = { t: "frame", f };
+    for (const link of this.links()) {
+      if (link.mode === "relay") {
+        if (now - (this.lastFrameAt.get(link) ?? 0) < RELAY_FRAME_INTERVAL_MS) continue;
+        this.lastFrameAt.set(link, now);
+      }
+      link.sendLossy(msg);
+    }
+  }
+
+  state(s: unknown): void {
+    this.remembered = { value: s };
+    const msg: HostMessage = { t: "state", s };
+    for (const link of this.links()) link.send(msg);
+  }
+
+  command(c: ScreenCommand) {
+    this.emit("command", c);
+  }
+
+  /** A new game (or the lobby): forget the previous game's HUD. */
+  reset() {
+    this.remembered = null;
+  }
+
+  dispose() {
+    this.clearListeners();
   }
 }
