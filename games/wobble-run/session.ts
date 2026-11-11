@@ -1,11 +1,13 @@
 import type { PlayerInfo, PlayerSlot } from "@/lib/realtime/protocol";
-import type { GameRoom } from "../types";
+import type { GameRoom, GameSource, ScreenFeed } from "../types";
+import { FrameFollower, FramePublisher, INERT_ROOM, lerpNumbers, shareHud } from "../kit/mirror";
 import { Store } from "../kit/store";
 import { Sfx } from "./audio";
 import { COURSES } from "./courses";
 import { COUNTDOWN, STEP } from "./sim/constants";
 import { IDLE_INPUT, World, type RunnerInput, type Slot, type WorldEvent } from "./sim/world";
-import { Renderer } from "./render/renderer";
+import { capture, restore, type WorldSnapshot } from "./sim/snapshot";
+import { Renderer, type FrameOptions } from "./render/renderer";
 
 /**
  * - intro: title card, world frozen at the start line
@@ -60,10 +62,17 @@ const HAPTICS: Partial<Record<WorldEvent["type"], number | number[]>> = {
   checkpoint: 10,
 };
 
+/** HUD buttons a remote screen may ask the host for. */
+type Command = "advance" | "restart" | "exit";
+
 /**
  * A best-of-three match. Owns the loop: phones' input in, fixed sim steps,
  * events out to sound/haptics/renderer, and a small HUD store React reads
  * with useSyncExternalStore. React never touches per-frame state.
+ *
+ * On a remote screen (long-distance) it runs as a mirror: no sim, no input —
+ * it poses the world from the host's frames, plays their events, shows the
+ * host's HUD, and sends HUD buttons back as commands.
  */
 export class Session {
   private world: World;
@@ -81,12 +90,21 @@ export class Session {
   private players: PlayerInfo[] = [];
   private store: Store<HudState>;
   private cleanup: (() => void)[] = [];
+  private room: GameRoom;
+  private feed: ScreenFeed | null;
+  private publisher: FramePublisher<WorldSnapshot, FrameOptions, WorldEvent> | null = null;
+  private follower: FrameFollower<WorldSnapshot, FrameOptions, WorldEvent> | null = null;
+  /** Host: counts Worlds built. Screen: the epoch currently shown. */
+  private epoch = 0;
+  private shownEpoch = -1;
 
   constructor(
-    private room: GameRoom,
-    private canvas: HTMLCanvasElement,
+    source: GameSource,
+    canvas: HTMLCanvasElement,
     private onExit: () => void,
   ) {
+    this.room = source.role === "host" ? source.room : INERT_ROOM;
+    this.feed = source.role === "screen" ? source.feed : null;
     this.renderer = new Renderer(canvas);
     this.renderer.onSlam = () => this.sfx.play("slam");
     this.world = new World(COURSES[0]);
@@ -128,8 +146,20 @@ export class Session {
       () => window.removeEventListener("resize", onResize),
       () => window.removeEventListener("pointerdown", unlock),
       () => window.removeEventListener("keydown", unlock),
-      this.room.on("press", ({ playerId, button }) => this.onPress(playerId, button)),
     );
+    if (this.feed) {
+      const feed = this.feed;
+      this.follower = new FrameFollower(feed);
+      this.cleanup.push(() => this.follower?.dispose(), feed.on("state", (s) => this.applyHostHud(s)));
+      if (feed.lastState) this.applyHostHud(feed.lastState);
+    } else {
+      this.publisher = new FramePublisher(this.room.screens);
+      this.cleanup.push(
+        this.room.on("press", ({ playerId, button }) => this.onPress(playerId, button)),
+        this.room.screens.on("command", ({ name }) => this.command(name as Command)),
+        shareHud(this.room.screens, this.store, ["muted"]),
+      );
+    }
     this.loadHeat(0);
     this.last = performance.now();
     this.raf = requestAnimationFrame(this.frame);
@@ -158,14 +188,30 @@ export class Session {
 
   getHud = () => this.store.get();
 
+  /** The host owns the HUD; a remote screen only ever shows what it sends. */
   private setHud(patch: Partial<HudState>) {
-    this.store.set(patch);
+    if (!this.feed) this.store.set(patch);
+  }
+
+  private applyHostHud(state: unknown) {
+    if (!state || typeof state !== "object") return;
+    const next = state as HudState;
+    // The 3-2-1 beeps come from the host's phase clock, not from sim events.
+    if (next.countdown !== this.hud.countdown && next.countdown !== null) this.sfx.countdown(next.countdown);
+    this.store.set({ ...next, muted: this.sfx.muted });
+  }
+
+  private command(name: Command) {
+    if (name === "advance") this.advance();
+    else if (name === "restart") this.restartHeat();
+    else if (name === "exit") this.exit();
   }
 
   // ─── Commands (HUD buttons and phone buttons) ───────────────────────────────
 
   /** Next heat, or a fresh match after the final. */
   advance() {
+    if (this.feed) return this.feed.command("advance");
     const { phase, heat } = this.hud;
     if (phase === "heat-over") this.transitionTo(heat + 1);
     else if (phase === "match-over") {
@@ -175,22 +221,25 @@ export class Session {
   }
 
   restartHeat() {
+    if (this.feed) return this.feed.command("restart");
     this.transitionTo(this.hud.heat);
   }
 
   exit() {
+    if (this.feed) return this.feed.command("exit");
     this.onExit();
   }
 
   toggleMute() {
     this.sfx.unlock();
     this.sfx.setMuted(!this.sfx.muted);
-    this.setHud({ muted: this.sfx.muted });
+    this.store.set({ muted: this.sfx.muted });
   }
 
   /** Dev/console: jump straight to a heat. */
   loadHeat(index: number) {
     const course = COURSES[index % COURSES.length];
+    this.epoch++;
     this.world = new World(course);
     this.renderer.startHeat(this.world);
     this.acc = 0;
@@ -270,6 +319,7 @@ export class Session {
     this.raf = requestAnimationFrame(this.frame);
     const dt = Math.max(0, Math.min(0.1, (now - this.last) / 1000));
     this.last = now;
+    if (this.follower) return this.follow(now, dt);
 
     this.updateFade(dt);
     const paused = this.hud.waitingFor !== null || this.pendingHeat !== null;
@@ -289,8 +339,25 @@ export class Session {
     }
 
     const showNames = this.hud.phase === "intro" ? 1 : clamp01((COUNTDOWN + 1 - this.world.time) / 0.8);
-    this.renderer.draw(this.world, paused || this.hud.phase === "intro" ? 1 : this.acc / STEP, dt, { fade: this.fade, names: showNames });
+    const opts: FrameOptions = { fade: this.fade, names: showNames };
+    this.renderer.draw(this.world, paused || this.hud.phase === "intro" ? 1 : this.acc / STEP, dt, opts);
+    this.publisher?.publish(now, () => ({ world: capture(this.world, this.hud.heat, this.epoch), opts }));
   };
+
+  /** Remote screen: pose the world from the host's frames and play their events. */
+  private follow(now: number, dt: number) {
+    const s = this.follower!.sample(now);
+    if (!s) return this.renderer.draw(this.world, 1, dt, { fade: 0, names: 0 });
+    const heat = s.to.world.heat;
+    if (s.to.world.epoch !== this.shownEpoch && COURSES[heat]) {
+      this.shownEpoch = s.to.world.epoch;
+      this.world = new World(COURSES[heat]);
+      this.renderer.startHeat(this.world);
+    }
+    restore(this.world, s.from.world, s.to.world, s.t);
+    if (s.events.length) this.react(s.events);
+    this.renderer.draw(this.world, s.t, dt, lerpNumbers(s.from.opts, s.to.opts, s.t));
+  }
 
   private updatePhase() {
     const { phase } = this.hud;
@@ -325,6 +392,7 @@ export class Session {
   }
 
   private react(events: readonly WorldEvent[]) {
+    this.publisher?.events(events);
     this.renderer.handle(this.world, events);
     for (const e of events) {
       const pattern = HAPTICS[e.type];
