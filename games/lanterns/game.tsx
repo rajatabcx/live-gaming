@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { GameProps } from "../types";
+import { sourceTarget, toSource, type GameProps } from "../types";
 import { Hud } from "./hud";
 import { Session } from "./session";
 
@@ -9,7 +9,9 @@ import { Session } from "./session";
  * Host-screen entry for Lanterns. React only mounts the canvas and HUD;
  * the Session owns the loop, the sim and the renderer.
  */
-export default function Lanterns({ room, players, onExit }: GameProps) {
+export default function Lanterns(props: GameProps) {
+  const { players, onExit } = props;
+  const target = sourceTarget(props);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const exitRef = useRef(onExit);
   const playersRef = useRef(players);
@@ -21,7 +23,7 @@ export default function Lanterns({ room, players, onExit }: GameProps) {
   });
 
   useEffect(() => {
-    const s = new Session(room, canvasRef.current!, () => exitRef.current());
+    const s = new Session(toSource(target), canvasRef.current!, () => exitRef.current());
     s.setPlayers(playersRef.current);
     s.start();
     setSession(s);
@@ -30,7 +32,7 @@ export default function Lanterns({ room, players, onExit }: GameProps) {
       s.destroy();
       setSession(null);
     };
-  }, [room]);
+  }, [target]);
 
   useEffect(() => {
     session?.setPlayers(players);

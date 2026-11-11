@@ -1,11 +1,13 @@
 import type { PlayerInfo, PlayerSlot } from "@/lib/realtime/protocol";
-import type { GameRoom } from "../types";
+import type { GameRoom, GameSource, ScreenFeed } from "../types";
+import { FrameFollower, FramePublisher, INERT_ROOM, lerpNumbers, shareHud } from "../kit/mirror";
 import { Store } from "../kit/store";
 import { Sfx } from "./audio";
 import { CHAPTERS } from "./chapters";
 import { STEP } from "./sim/constants";
 import { IDLE_INPUT, World, type LanternInput, type Slot, type WorldEvent } from "./sim/world";
-import { Renderer } from "./render/renderer";
+import { capture, restore, type WorldSnapshot } from "./sim/snapshot";
+import { Renderer, type FrameOptions } from "./render/renderer";
 
 /**
  * - playing: find and light the stars
@@ -47,10 +49,17 @@ const HAPTICS: Partial<Record<WorldEvent["type"], number | number[]>> = {
   glow: 8,
 };
 
+/** HUD buttons a remote screen may ask the host for. */
+type Command = "again" | "exit";
+
 /**
  * One night of Lanterns. Owns the loop: phones' input in, fixed sim steps,
  * events out to sound/haptics/renderer, and a small HUD store React reads
  * with useSyncExternalStore. React never touches per-frame state.
+ *
+ * On a remote screen (long-distance) it runs as a mirror: no sim, no input —
+ * it poses the sky from the host's frames, plays their events, shows the
+ * host's HUD, and sends HUD buttons back as commands.
  */
 export class Session {
   private world: World;
@@ -70,12 +79,22 @@ export class Session {
   private players: PlayerInfo[] = [];
   private store: Store<HudState>;
   private cleanup: (() => void)[] = [];
+  private room: GameRoom;
+  private feed: ScreenFeed | null;
+  private publisher: FramePublisher<WorldSnapshot, FrameOptions, WorldEvent> | null = null;
+  private follower: FrameFollower<WorldSnapshot, FrameOptions, WorldEvent> | null = null;
+  /** Host: counts Worlds built. */
+  private epoch = 0;
+  /** Screen: what's currently posed. */
+  private shown = { epoch: -1, chapter: -1, rising: false };
 
   constructor(
-    private room: GameRoom,
-    private canvas: HTMLCanvasElement,
+    source: GameSource,
+    canvas: HTMLCanvasElement,
     private onExit: () => void,
   ) {
+    this.room = source.role === "host" ? source.room : INERT_ROOM;
+    this.feed = source.role === "screen" ? source.feed : null;
     this.renderer = new Renderer(canvas);
     this.world = new World(CHAPTERS[0]);
     this.store = new Store<HudState>({
@@ -114,8 +133,20 @@ export class Session {
       () => window.removeEventListener("resize", onResize),
       () => window.removeEventListener("pointerdown", unlock),
       () => window.removeEventListener("keydown", unlock),
-      this.room.on("press", ({ playerId, button }) => this.onPress(playerId, button)),
     );
+    if (this.feed) {
+      const feed = this.feed;
+      this.follower = new FrameFollower(feed);
+      this.cleanup.push(() => this.follower?.dispose(), feed.on("state", (s) => this.applyHostHud(s)));
+      if (feed.lastState) this.applyHostHud(feed.lastState);
+    } else {
+      this.publisher = new FramePublisher(this.room.screens);
+      this.cleanup.push(
+        this.room.on("press", ({ playerId, button }) => this.onPress(playerId, button)),
+        this.room.screens.on("command", ({ name }) => this.command(name as Command)),
+        shareHud(this.room.screens, this.store, ["muted"]),
+      );
+    }
     this.newNight();
     this.last = performance.now();
     this.raf = requestAnimationFrame(this.frame);
@@ -142,30 +173,47 @@ export class Session {
 
   getHud = () => this.store.get();
 
+  /** The host owns the HUD; a remote screen only ever shows what it sends. */
   private setHud(patch: Partial<HudState>) {
-    this.store.set(patch);
+    if (!this.feed) this.store.set(patch);
+  }
+
+  private applyHostHud(state: unknown) {
+    if (!state || typeof state !== "object") return;
+    const next = state as HudState;
+    // Sunrise is a phase change on the host, not a sim event.
+    if (next.phase === "dawn" && this.hud.phase !== "dawn") this.sfx.play("dawn");
+    this.store.set({ ...next, muted: this.sfx.muted });
+  }
+
+  private command(name: Command) {
+    if (name === "again") this.playAgain();
+    else if (name === "exit") this.exit();
   }
 
   // ─── Commands ───────────────────────────────────────────────────────────────
 
   /** From the dawn screen: another night. */
   playAgain() {
+    if (this.feed) return this.feed.command("again");
     this.restartPending = true;
     this.fadeTarget = 0;
   }
 
   exit() {
+    if (this.feed) return this.feed.command("exit");
     this.onExit();
   }
 
   toggleMute() {
     this.sfx.unlock();
     this.sfx.setMuted(!this.sfx.muted);
-    this.setHud({ muted: this.sfx.muted });
+    this.store.set({ muted: this.sfx.muted });
   }
 
   /** Dev/console: jump straight to a chapter. */
   loadChapter(index: number) {
+    this.epoch++;
     this.world = new World(CHAPTERS[index]);
     this.renderer.startChapter(this.world);
     this.dawn = dawnFor(index);
@@ -250,6 +298,7 @@ export class Session {
     this.raf = requestAnimationFrame(this.frame);
     const dt = Math.max(0, Math.min(0.1, (now - this.last) / 1000));
     this.last = now;
+    if (this.follower) return this.follow(now, dt);
 
     this.updateFade(dt);
     const paused = this.hud.waitingFor !== null || this.restartPending;
@@ -269,8 +318,37 @@ export class Session {
     const phase = this.hud.phase;
     const rise = phase === "rising" ? Math.min(1, this.phaseTime / RISE_SECONDS) : 0;
     this.bloom += ((phase === "found" ? 1 : 0) - this.bloom) * Math.min(1, dt * 2);
-    this.renderer.draw(this.world, paused ? 1 : this.acc / STEP, dt, { fade: this.fade, dawn: this.dawn, rise, bloom: this.bloom });
+    const opts: FrameOptions = { fade: this.fade, dawn: this.dawn, rise, bloom: this.bloom };
+    this.renderer.draw(this.world, paused ? 1 : this.acc / STEP, dt, opts);
+    this.publisher?.publish(now, () => ({
+      world: capture(this.world, CHAPTERS.indexOf(this.world.chapter), this.epoch, phase === "rising"),
+      opts,
+    }));
   };
+
+  /** Remote screen: pose the sky from the host's frames and play their events. */
+  private follow(now: number, dt: number) {
+    const s = this.follower!.sample(now);
+    if (!s) return this.renderer.draw(this.world, 1, dt, { fade: 0, dawn: 0, rise: 0, bloom: 0 });
+    const to = s.to.world;
+    const shown = this.shown;
+    if (to.epoch !== shown.epoch || (to.chapter !== shown.chapter && !(to.rising && to.chapter === shown.chapter + 1))) {
+      this.world = new World(CHAPTERS[to.chapter] ?? CHAPTERS[0]);
+      this.renderer.startChapter(this.world);
+      if (to.rising) this.renderer.beginRise(this.world, CHAPTERS[Math.max(0, to.chapter - 1)]);
+    } else if (to.rising && !shown.rising) {
+      // Same moves the host made: keep the lanterns, swap the sky, slide the old one away.
+      const previous = this.world.chapter;
+      this.world.rise(CHAPTERS[to.chapter]);
+      this.renderer.beginRise(this.world, previous);
+    }
+    if (!to.rising && shown.rising) this.renderer.endRise();
+    this.shown = { epoch: to.epoch, chapter: to.chapter, rising: to.rising };
+
+    restore(this.world, s.from.world, to, s.t);
+    if (s.events.length) this.react(s.events);
+    this.renderer.draw(this.world, s.t, dt, lerpNumbers(s.from.opts, s.to.opts, s.t));
+  }
 
   private updatePhase(dt: number) {
     const { phase, chapter } = this.hud;
@@ -301,6 +379,7 @@ export class Session {
   }
 
   private react(events: readonly WorldEvent[]) {
+    this.publisher?.events(events);
     this.renderer.handle(this.world, events);
     for (const e of events) {
       const pattern = HAPTICS[e.type];
