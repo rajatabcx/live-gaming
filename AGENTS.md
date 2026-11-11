@@ -27,4 +27,4 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - **Games** live in `games/<id>/` and register in `games/registry.ts`. A game gets a typed input stream + player list from the room; it owns its own loop and canvas.
   - Shape (see `games/tongue-tied/`): `sim/` is pure TS (no DOM, fixed step, deterministic) · `render/` draws it · `session.ts` runs the loop and feeds a HUD store · `game.tsx` only mounts canvas + HUD.
   - Playtest without phones at `/dev/<id>` (dev builds only; keyboard room, two players on one keyboard).
-  - `pnpm playtest` runs scripted headless solutions for every Tongue Tied level — run it after touching sim tuning or level data.
+  - `pnpm playtest` runs headless bots through every Tongue Tied level, Wobble Run course and Lanterns chapter — run it after touching sim tuning or level/course/chapter data. `TRACE=1` on the Wobble Run script prints a per-step trace.
